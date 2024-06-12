@@ -1,0 +1,18 @@
+{
+  "HomeTeam": {
+    "Name": "Germany",
+    "Score": 2,
+    "RedCards": 0,
+    "YellowCards": 2,
+    "Corners": 5,
+    "Fouls": 10
+  },
+  "AwayTeam": {
+    "Name": "France",
+    "Score": 1,
+    "RedCards": 1,
+    "YellowCards": 3,
+    "Corners": 3,
+    "Fouls": 8
+  }
+}

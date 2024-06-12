@@ -1,0 +1,260 @@
+{
+  "success": true,
+  "data": [
+    {
+      "match_id": 1676019,
+      "home_team": "Germany",
+      "away_team": "Scotland"
+    },
+    {
+      "match_id": 1676020,
+      "home_team": "Hungary",
+      "away_team": "Switzerland"
+    },
+    {
+      "match_id": 1676021,
+      "home_team": "Spain",
+      "away_team": "Croatia"
+    },
+    {
+      "match_id": 1676022,
+      "home_team": "Italy",
+      "away_team": "Albania"
+    },
+    {
+      "match_id": 1676025,
+      "home_team": "Poland",
+      "away_team": "Netherlands"
+    },
+    {
+      "match_id": 1676023,
+      "home_team": "Slovenia",
+      "away_team": "Denmark"
+    },
+    {
+      "match_id": 1676024,
+      "home_team": "Serbia",
+      "away_team": "England"
+    },
+    {
+      "match_id": 1676027,
+      "home_team": "Romania",
+      "away_team": "Ukraine"
+    },
+    {
+      "match_id": 1676028,
+      "home_team": "Belgium",
+      "away_team": "Slovakia"
+    },
+    {
+      "match_id": 1676026,
+      "home_team": "Austria",
+      "away_team": "France"
+    },
+    {
+      "match_id": 1676029,
+      "home_team": "Turkey",
+      "away_team": "Georgia"
+    },
+    {
+      "match_id": 1676030,
+      "home_team": "Portugal",
+      "away_team": "Czech Republic"
+    },
+    {
+      "match_id": 1676033,
+      "home_team": "Croatia",
+      "away_team": "Albania"
+    },
+    {
+      "match_id": 1676031,
+      "home_team": "Germany",
+      "away_team": "Hungary"
+    },
+    {
+      "match_id": 1676032,
+      "home_team": "Scotland",
+      "away_team": "Switzerland"
+    },
+    {
+      "match_id": 1676035,
+      "home_team": "Slovenia",
+      "away_team": "Serbia"
+    },
+    {
+      "match_id": 1676036,
+      "home_team": "Denmark",
+      "away_team": "England"
+    },
+    {
+      "match_id": 1676034,
+      "home_team": "Spain",
+      "away_team": "Italy"
+    },
+    {
+      "match_id": 1676039,
+      "home_team": "Slovakia",
+      "away_team": "Ukraine"
+    },
+    {
+      "match_id": 1676037,
+      "home_team": "Poland",
+      "away_team": "Austria"
+    },
+    {
+      "match_id": 1676038,
+      "home_team": "Netherlands",
+      "away_team": "France"
+    },
+    {
+      "match_id": 1676041,
+      "home_team": "Georgia",
+      "away_team": "Czech Republic"
+    },
+    {
+      "match_id": 1676042,
+      "home_team": "Turkey",
+      "away_team": "Portugal"
+    },
+    {
+      "match_id": 1676040,
+      "home_team": "Belgium",
+      "away_team": "Romania"
+    },
+    {
+      "match_id": 1676043,
+      "home_team": "Switzerland",
+      "away_team": "Germany"
+    },
+    {
+      "match_id": 1676044,
+      "home_team": "Scotland",
+      "away_team": "Hungary"
+    },
+    {
+      "match_id": 1676045,
+      "home_team": "Albania",
+      "away_team": "Spain"
+    },
+    {
+      "match_id": 1676046,
+      "home_team": "Croatia",
+      "away_team": "Italy"
+    },
+    {
+      "match_id": 1676049,
+      "home_team": "Netherlands",
+      "away_team": "Austria"
+    },
+    {
+      "match_id": 1676050,
+      "home_team": "France",
+      "away_team": "Poland"
+    },
+    {
+      "match_id": 1676048,
+      "home_team": "Denmark",
+      "away_team": "Serbia"
+    },
+    {
+      "match_id": 1676055,
+      "home_team": "England",
+      "away_team": "Slovenia"
+    },
+    {
+      "match_id": 1676051,
+      "home_team": "Slovakia",
+      "away_team": "Romania"
+    },
+    {
+      "match_id": 1676052,
+      "home_team": "Ukraine",
+      "away_team": "Belgium"
+    },
+    {
+      "match_id": 1676053,
+      "home_team": "Georgia",
+      "away_team": "Portugal"
+    },
+    {
+      "match_id": 1676054,
+      "home_team": "Czech Republic",
+      "away_team": "Turkey"
+    },
+    {
+      "match_id": 1696565,
+      "home_team": "Runner-up Group A",
+      "away_team": "Runner-up Group B"
+    },
+    {
+      "match_id": 1696566,
+      "home_team": "Winner Group A",
+      "away_team": "Runner-up Group C"
+    },
+    {
+      "match_id": 1696567,
+      "home_team": "Winner Group C",
+      "away_team": "3rd Group D/E/F"
+    },
+    {
+      "match_id": 1696568,
+      "home_team": "Winner Group B",
+      "away_team": "3rd Group A/D/E/F"
+    },
+    {
+      "match_id": 1696569,
+      "home_team": "Runner-up Group D",
+      "away_team": "Runner-up Group E"
+    },
+    {
+      "match_id": 1696570,
+      "home_team": "Winner Group F",
+      "away_team": "3rd Group A/B/C"
+    },
+    {
+      "match_id": 1696571,
+      "home_team": "Winner Group E",
+      "away_team": "3rd Group A/B/C/D"
+    },
+    {
+      "match_id": 1696572,
+      "home_team": "Winner Group D",
+      "away_team": "Runner-up Group F"
+    },
+    {
+      "match_id": 1696573,
+      "home_team": "Winner R16 Match 4",
+      "away_team": "Winner R16 Match 2"
+    },
+    {
+      "match_id": 1696574,
+      "home_team": "Winner R16 Match 6",
+      "away_team": "Winner R16 Match 5"
+    },
+    {
+      "match_id": 1696575,
+      "home_team": "Winner R16 Match 3",
+      "away_team": "Winner R16 Match 1"
+    },
+    {
+      "match_id": 1696576,
+      "home_team": "Winner R16 Match 7",
+      "away_team": "Winner R16 Match 8"
+    },
+    {
+      "match_id": 1696577,
+      "home_team": "Winner QF Match 1",
+      "away_team": "Winner QF Match 2"
+    },
+    {
+      "match_id": 1696578,
+      "home_team": "Winner QF Match 4",
+      "away_team": "Winner QF Match 3"
+    },
+    {
+      "match_id": 1696579,
+      "home_team": "Winner SF1",
+      "away_team": "Winner SF2"
+    }
+  ]
+}

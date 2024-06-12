@@ -1,13 +1,22 @@
 const express = require("express");
-const { Telegraf } = require("telegraf");
+const { Telegraf, Markup } = require("telegraf");
 const fs = require("fs").promises;
 const cron = require("node-cron");
+const axios = require("axios");
+// const Markup = require("telegraf/markup");
+
 require("dotenv").config();
 
-// Replace with your bot token
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const PORT = process.env.PORT || 3000;
+const BOT_ADMIN_PASSWORD = process.env.BOT_ADMIN_PASSWORD;
 const HOST = process.env.HOST;
+const LIVE_SCORE_API_KEY = process.env.LIVE_SCORE_API_KEY;
+const LIVE_SCORE_SECRET_KEY = process.env.LIVE_SCORE_SECRET_KEY;
+const LIVE_SCORE_STATISTICS_URL =
+  "https://livescore-api.com/api-client/matches/stats.json";
+const LIVE_SCORE_EVENTS_URL =
+  "https://livescore-api.com/api-client/scores/events.json";
 
 const bot = new Telegraf(BOT_TOKEN);
 let cronJob;
@@ -16,15 +25,19 @@ let cronJob;
 const app = express();
 app.use(express.json());
 
+// Todo: Uncomment later
 // Set webhook
-bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
+// bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
 
 // Set commands for private chats
 bot.telegram.setMyCommands(
   [
-    { command: "start", description: "Start \nEURO 2024 Messenger" },
-    { command: "help", description: "Display guide" },
-    { command: "euro_subscribe", description: "Subscribe to updates" },
+    { command: "start", description: "Start EURO Messenger" },
+    { command: "euro_live", description: "Get live match info" },
+    { command: "euro_fixtures", description: "Get EURO fixtures" },
+    { command: "euro_standings", description: "Get Teams' previous standings" },
+    { command: "euro_teams_info", description: "Get Teams information" },
+    { command: "euro_subscribe", description: "Subscribe to live updates" },
     { command: "euro_unsubscribe", description: "Unsubscribe from updates" },
   ],
   { scope: { type: "all_private_chats" } }
@@ -33,8 +46,15 @@ bot.telegram.setMyCommands(
 // Set commands for group chats
 bot.telegram.setMyCommands(
   [
-    { command: "euro_subscribe", description: "Subscribe to updates" },
-    { command: "euro_unsubscribe", description: "Unsubscribe from updates" },
+    { command: "euro_live", description: "Get live match info" },
+    { command: "euro_fixtures", description: "Get EURO fixtures" },
+    { command: "euro_standings", description: "Get Teams' previous standings" },
+    { command: "euro_teams_info", description: "Get Teams information" },
+    { command: "euro_subscribe", description: "Subscribe to live updates" },
+    {
+      command: "euro_unsubscribe",
+      description: "Unsubscribe group from updates",
+    },
   ],
   { scope: { type: "all_group_chats" } }
 );
@@ -71,8 +91,9 @@ async function setWebhook() {
   }
 }
 
+// TODO: Uncomment later
 // Call setWebhook once when the server starts
-setWebhook();
+// setWebhook();
 
 const subscribeGroup = async (ctx, groupId) => {
   try {
@@ -91,7 +112,7 @@ const subscribeGroup = async (ctx, groupId) => {
       return;
     }
 
-    ctx.reply("Group has already subscribed.");
+    ctx.reply("Group currently subscribed.");
   } catch (error) {
     console.error("Error subscribing group:", error);
     return false;
@@ -105,7 +126,7 @@ const unsubscribeGroup = async (ctx, groupId) => {
     if (subscribers.groups.includes(groupId)) {
       subscribers.groups = subscribers.groups.filter((id) => id !== groupId);
       await saveSubscribers(subscribers);
-      ctx.reply("Unsubscription successful.");
+      ctx.reply("Group unsubscribed successfully.");
       await informBotAdmin(
         ctx,
         `A group just unsubscribed from \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
@@ -115,7 +136,7 @@ const unsubscribeGroup = async (ctx, groupId) => {
       return;
     }
 
-    ctx.reply("Group not in subscription list.");
+    ctx.reply("Group is currently unsubscribed.");
   } catch (error) {
     console.error("Error unsubscribing group:", error);
     return false;
@@ -140,7 +161,7 @@ const subscribeUser = async (ctx, chatId) => {
       return;
     }
 
-    ctx.reply("You're already subscribed.");
+    ctx.reply("You're currently subscribed.");
   } catch (error) {
     console.error("Error subscribing user:", error);
     return false;
@@ -165,7 +186,7 @@ const unsubscribeUser = async (ctx, chatId) => {
       return;
     }
 
-    ctx.reply("You're not in the subscription list.");
+    ctx.reply("You're currently unsubscribed.");
   } catch (error) {
     console.error("Error unsubscribing user:", error);
     return false;
@@ -185,29 +206,41 @@ const saveSubscribers = async (subscribers) => {
   await fs.writeFile("subscribers.json", JSON.stringify(subscribers));
 };
 
-const handleSubscriptionEvent = async () => {
-  try {
-    const subscribers = await loadSubscribers();
-    if (subscribers.groups.length === 0 && subscribers.users.length === 0) {
-      stopCronJob();
-      console.log("Periodic updates stopped.");
-    } else {
-      startCronJob();
-      console.log("Periodic updates started.");
-    }
-  } catch (error) {
-    console.error("Error handling subscription event:", error);
-  }
-};
-
 // Command handlers
-bot.command("start", (ctx) => {
-  ctx.reply(
-    `Hey there! 👋
+bot.command("start", async (ctx) => {
+  const chatId = ctx.chat.id;
+  if (chatId > 0) {
+    // Automatically subscribe the user
+    let subscribers = await loadSubscribers();
+
+    if (!subscribers.users.includes(chatId)) {
+      subscribers.users.push(chatId);
+      await saveSubscribers(subscribers);
+      await informBotAdmin(
+        ctx,
+        `A Telegram User just subscribed to \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
+          ctx.chat.first_name
+        } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
+      );
+    }
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "📊 Dexscreener",
+            url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+          },
+          { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+        ],
+      ],
+    };
+
+    const message = `Hey there! 👋
 
 <b>I am EURO 2024 Messenger</b>
 
-Want me to keep your group updated about EURO 2024?
+Want me to keep your group updated?
 
 1. <b>Add me to your Group</b> 
     - Add @euro_messenger_bot to your group.
@@ -223,31 +256,29 @@ Want me to keep your group updated about EURO 2024?
 
 That's it! 🎉
 
-Thank you for choosing Euro 2024 Messenger! ⚽️🏆`,
-    { parse_mode: "HTML" }
-  );
-});
+Thank you for choosing Euro 2024 Messenger! ⚽️🏆`;
 
-bot.command("help", (ctx) => {
-  ctx.reply(
-    `Available group commands:
-
-/euro_subscribe
-
-/euro_unsubscribe`,
-    { parse_mode: "HTML" }
-  );
+    bot.telegram.sendPhoto(
+      chatId,
+      {
+        source: "euro-logo.png",
+      },
+      {
+        caption: message,
+        parse_mode: "HTML",
+        reply_markup: inlineKeyboard,
+      }
+    );
+  }
 });
 
 bot.command("euro_subscribe", async (ctx) => {
   const chatId = ctx.chat.id;
   if (chatId > 0) {
     await subscribeUser(ctx, chatId);
-    await handleSubscriptionEvent();
   } else {
     const groupId = ctx.chat.id;
     await subscribeGroup(ctx, groupId);
-    await handleSubscriptionEvent();
   }
 });
 
@@ -255,19 +286,16 @@ bot.command("euro_unsubscribe", async (ctx) => {
   const chatId = ctx.chat.id;
   if (chatId > 0) {
     await unsubscribeUser(ctx, chatId);
-    await handleSubscriptionEvent();
   } else {
     const groupId = ctx.chat.id;
     await unsubscribeGroup(ctx, groupId);
-    await handleSubscriptionEvent();
   }
 });
 
 bot.command("set_bot_admin", async (ctx) => {
-  const password = process.env.BOT_ADMIN_PASSWORD;
   const userPassword = ctx.message.text.replace("/set_bot_admin ", "");
   if (ctx.chat.id > 0) {
-    if (userPassword === password) {
+    if (userPassword === BOT_ADMIN_PASSWORD) {
       try {
         const admins = await loadBotAdmins();
         if (!admins.includes(ctx.chat.id)) {
@@ -289,20 +317,438 @@ bot.command("set_bot_admin", async (ctx) => {
   }
 });
 
-const startCronJob = async () => {
-  if (!cronJob) {
-    cronJob = cron.schedule("*/10 * * * * *", sendUpdateToSubscribers); // Runs every 10 seconds
-    console.log("Cron job started");
-  }
-};
+bot.command("euro_live", async (ctx) => {
+  try {
+    // Read the matches data
+    const data = await fs.readFile("match-schedule.json", "utf-8");
+    const matches = JSON.parse(data);
 
-const stopCronJob = () => {
-  if (cronJob) {
-    cronJob.stop();
-    cronJob = null;
-    console.log("Cron job stopped");
+    // Get the current date and time
+    const now = new Date();
+    let currentMatch = matches.find((match) => {
+      const matchTime = new Date(match.DateUtc);
+      // Check if the current time is within the match duration (assuming 2 hours for each match)
+      return (
+        now >= matchTime &&
+        now <= new Date(matchTime.getTime() + 2 * 60 * 60 * 1000)
+      );
+    });
+
+    let isLive = true;
+
+    if (!currentMatch) {
+      // Find the next upcoming match
+      currentMatch = matches.find((match) => new Date(match.DateUtc) > now);
+      isLive = false;
+    }
+
+    if (!currentMatch) {
+      ctx.reply("⚽️ No live or upcoming matches found.");
+      return;
+    }
+
+    let statsMessage = `
+<b>EURO 2024 Live Update</b>
+
+-------------------------
+🏟️ <b>${currentMatch.HomeTeam}</b> vs <b>${currentMatch.AwayTeam}</b>
+👥 ${currentMatch.Group}
+📍 ${currentMatch.Location}
+-------------------------`;
+
+    if (isLive) {
+      // Get the match ID
+      const matchId = currentMatch.MatchId;
+
+      // Fetch match scores and statistics from the API
+      const scores = await axios.get(
+        `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
+      );
+      const statistics = await axios.get(
+        `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
+      );
+
+      if (!scores.success && !statistics.success) {
+        ctx.reply("⚠️ Failed to retrieve match data.");
+        return;
+      }
+
+      const goals = scores.data.match.score;
+      const stats = statistics.data;
+
+      statsMessage += `
+GOALS:  ${goals && goals}
+-------------------------
+
+📊 <b>Match Statistics</b>
+
+Yellow Cards: ${stats.yellow_cards}
+Red Cards: ${stats.red_cards}
+Substitutions: ${stats.substitutions}
+Possession: ${stats.possesion}
+Free Kicks: ${stats.free_kicks}
+Goal Kicks: ${stats.goal_kicks}
+Throw Ins: ${stats.throw_ins}
+Offsides: ${stats.offsides}
+Corners: ${stats.corners}
+Shots on Target: ${stats.shots_on_target}
+Shots off Target: ${stats.shots_off_target}
+Attempts on Goal: ${stats.attempts_on_goal}
+Saves: ${stats.saves}
+Fouls: ${stats.fauls}
+Treatments: ${stats.treatments}
+Penalties: ${stats.penalties}
+Shots Blocked: ${stats.shots_blocked}
+Dangerous Attacks: ${stats.dangerous_attacks}
+Attacks: ${stats.attacks}
+`;
+    } else {
+      statsMessage += `
+GOALS: N/A
+-------------------------
+
+📊 <b>Match Statistics</b>
+
+Yellow Cards: N/A
+Red Cards: N/A
+Substitutions: N/A
+Possession: N/A
+Free Kicks: N/A
+Goal Kicks: N/A
+Throw Ins: N/A
+Offsides: N/A
+Corners: N/A
+Shots on Target: N/A
+Shots off Target: N/A
+Attempts on Goal: N/A
+Saves: N/A
+Fouls: N/A
+Treatments: N/A
+Penalties: N/A
+Shots Blocked: N/A
+Dangerous Attacks: N/A
+Attacks: N/A
+`;
+      ctx.reply("⚽️ Match not yet live.");
+    }
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "📊 Dexscreener",
+            url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+          },
+          { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+        ],
+      ],
+    };
+
+    bot.telegram.sendPhoto(
+      ctx.chat.id,
+      {
+        source: "euro-logo.png",
+      },
+      {
+        caption: statsMessage,
+        parse_mode: "HTML",
+        reply_markup: inlineKeyboard,
+      }
+    );
+  } catch (error) {
+    console.error("Error fetching live match data:", error);
+    ctx.reply("⚠️ An error occurred while fetching live match data.");
   }
-};
+});
+
+bot.command("euro_fixtures", async (ctx) => {
+  try {
+    const matchesData = await fs.readFile("match-schedule.json", "utf-8");
+    const matches = JSON.parse(matchesData);
+
+    if (!matches || matches.length === 0) {
+      ctx.reply("📅 No scheduled matches found.");
+      return;
+    }
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "📊 Dexscreener",
+            url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+          },
+          { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+        ],
+      ],
+    };
+
+    let messageChunks = [];
+    let message = "📅 <b>EURO 2024 Fixtures</b>\n\n";
+    for (let i = 0; i < matches.length; i++) {
+      const match = matches[i];
+      message += `🏟️ <b>${match.HomeTeam}</b> vs <b>${
+        match.AwayTeam
+      }</b>\n📆 Date: ${new Date(
+        match.DateUtc
+      ).toLocaleDateString()} \n⏰ Time: ${new Date(
+        match.DateUtc
+      ).toLocaleTimeString()} \n📍 Location: ${match.Location} ${
+        match.Group == null ? "" : `\n🎉 Group: ${match.Group}`
+      }\n\n`;
+
+      // Split message into chunks of 5 matches each
+      if ((i + 1) % 5 === 0 || i === matches.length - 1) {
+        messageChunks.push(message);
+        message = "";
+      }
+    }
+
+    // Send the first batch with the image
+    if (messageChunks.length > 0) {
+      await bot.telegram.sendPhoto(
+        ctx.chat.id,
+        { source: "euro-logo.png" },
+        {
+          caption: messageChunks[0],
+          parse_mode: "HTML",
+        }
+      );
+    }
+
+    // Send remaining batches without image
+    for (let i = 1; i < messageChunks.length - 1; i++) {
+      await bot.telegram.sendMessage(ctx.chat.id, messageChunks[i], {
+        parse_mode: "HTML",
+      });
+    }
+
+    // Send the last batch with buttons
+    if (messageChunks.length > 1) {
+      await bot.telegram.sendMessage(
+        ctx.chat.id,
+        messageChunks[messageChunks.length - 1],
+        {
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching match schedule:", error);
+    ctx.reply("⚠️ An error occurred while fetching match schedule.");
+  }
+});
+
+bot.command("euro_standings", async (ctx) => {
+  try {
+    const standingsData = await fs.readFile("standings.json", "utf-8");
+    const data = JSON.parse(standingsData);
+
+    if (!data || !data.standings) {
+      ctx.reply("🏆 Standings not available.");
+      return;
+    }
+
+    const standings = data.standings;
+    let messageChunks = [];
+    let message = "🏆 <b>Teams' Previous Standings</b>\n\n";
+
+    for (const group of standings) {
+      message += `<b>${group.group.toUpperCase()}</b>\n------&lt;&gt;------------------------\n\n`;
+
+      for (const team of group.teams) {
+        message += `<b>${team.position}. ${team.name}</b> - ${team.points} pts\n`;
+        message += `Matches Played: ${team.matches_played}, Wins: ${team.wins}\n`;
+        message += `Draws: ${team.draws}, Losses: ${team.losses}\n`;
+        message += `Goals For: ${team.goals_for}, Goals Against: ${team.goals_against}\n`;
+        message += `Goal Difference: ${team.goal_difference}\n\n`;
+      }
+
+      // Split message into chunks of 5 groups each
+      if (messageChunks.length === 0 || message.split("\n").length >= 5) {
+        messageChunks.push(message);
+        message = "";
+      }
+    }
+
+    // Send the first batch with the image
+    if (messageChunks.length > 0) {
+      await bot.telegram.sendPhoto(
+        ctx.chat.id,
+        { source: "euro-logo.png" },
+        {
+          caption: messageChunks[0],
+          parse_mode: "HTML",
+        }
+      );
+    }
+
+    // Send remaining batches without image
+    for (let i = 1; i < messageChunks.length - 1; i++) {
+      await bot.telegram.sendMessage(ctx.chat.id, messageChunks[i], {
+        parse_mode: "HTML",
+      });
+    }
+
+    // Send the last batch with buttons
+    if (messageChunks.length > 1) {
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            {
+              text: "📊 Dexscreener",
+              url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+            },
+            { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+          ],
+        ],
+      };
+
+      await bot.telegram.sendMessage(
+        ctx.chat.id,
+        messageChunks[messageChunks.length - 1],
+        {
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching standings:", error);
+    ctx.reply("⚠️ An error occurred while fetching standings.");
+  }
+});
+
+// Command to get current standings
+bot.command("euro_standings", async (ctx) => {
+  const standingsData = await fs.readFile("standings.json", "utf-8");
+  const data = JSON.parse(standingsData);
+
+  if (!data || !data.standings) {
+    ctx.reply("🏆 Standings not available.");
+    return;
+  }
+
+  const standings = data.standings;
+  let message = "🏆 <b>Teams' Previous Standings</b>\n\n";
+
+  for (const group of standings) {
+    message += `<b>${group.group}</b>\n`;
+
+    for (const team of group.teams) {
+      message += `<b>${team.position}. ${team.name}</b> - ${team.points} pts\n`;
+      message += `Matches Played: ${team.matches_played}, Wins: ${team.wins}\nDraws: ${team.draws}, Losses: ${team.losses}\n`;
+      message += `Goals For: ${team.goals_for}, Goals Against: ${team.goals_against}\nGoal Difference: ${team.goal_difference}\n\n`;
+    }
+  }
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        {
+          text: "📊 Dexscreener",
+          url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+        },
+        { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+      ],
+    ],
+  };
+
+  bot.telegram.sendPhoto(
+    ctx.chat.id,
+    {
+      source: "euro-logo.png",
+    },
+    {
+      caption: message,
+      parse_mode: "HTML",
+      reply_markup: inlineKeyboard,
+    }
+  );
+});
+
+// Command to get team information
+bot.command("euro_teams_info", async (ctx) => {
+  try {
+    // Load team data from JSON file
+    const rawData = await fs.readFile("team-info.json", "utf-8");
+    const teamData = JSON.parse(rawData);
+
+    if (!teamData || !teamData.teams || teamData.teams.length === 0) {
+      ctx.reply("⚽ No team information found.");
+      return;
+    }
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "📊 Dexscreener",
+            url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+          },
+          { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+        ],
+      ],
+    };
+
+    let messageChunks = [];
+    let message = "<b>⚽ Euro 2024 Teams Information ⚽</b>\n\n";
+    for (let i = 0; i < teamData.teams.length; i++) {
+      const team = teamData.teams[i];
+      message += `<b>${i + 1}. ${team.name.toUpperCase()}</b>\n`;
+      message += `🌍 Group: ${team.group}\n`;
+      message += `👔 Coach: ${team.coach}\n-----------------------------------------------\n`;
+      message += "🏆 Euro Best:\n";
+      team.pedigree["Euro best"].forEach((achievement) => {
+        message += `---- ${achievement}\n`;
+      });
+      message += "-----------------------------------------------\n\n";
+
+      // Split message into chunks of 4 teams each
+      if ((i + 1) % 4 === 0 || i === teamData.teams.length - 1) {
+        messageChunks.push(message);
+        message = "";
+      }
+    }
+
+    // Send the first batch with the image
+    if (messageChunks.length > 0) {
+      await bot.telegram.sendPhoto(
+        ctx.chat.id,
+        { source: "euro-logo.png" },
+        {
+          caption: messageChunks[0],
+          parse_mode: "HTML",
+        }
+      );
+    }
+
+    // Send remaining batches without image
+    for (let i = 1; i < messageChunks.length - 1; i++) {
+      await bot.telegram.sendMessage(ctx.chat.id, messageChunks[i], {
+        parse_mode: "HTML",
+      });
+    }
+
+    // Send the last batch with buttons
+    if (messageChunks.length > 1) {
+      await bot.telegram.sendMessage(
+        ctx.chat.id,
+        messageChunks[messageChunks.length - 1],
+        {
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching team information:", error);
+    ctx.reply(
+      "⚠️ An error occurred while fetching team information. Please try again later."
+    );
+  }
+});
 
 const loadBotAdmins = async () => {
   try {
@@ -337,31 +783,251 @@ const informBotAdmin = async (ctx, message) => {
   }
 };
 
-const getUpdate = () => {
-  return "Hello, trust you're doing fine.";
-};
-
-const sendUpdateToSubscribers = async () => {
+const loadMatches = async () => {
   try {
-    const subscribers = await loadSubscribers();
-    if (subscribers.groups.length > 0) {
-      for (const groupId of subscribers.groups) {
-        await bot.telegram.sendMessage(groupId, getUpdate());
-      }
-    }
-    if (subscribers.users.length > 0) {
-      for (const chatId of subscribers.users) {
-        await bot.telegram.sendMessage(chatId, getUpdate());
-      }
-    }
+    const data = await fs.readFile("match-schedule.json", "utf8");
+    return JSON.parse(data);
   } catch (error) {
-    console.error("Error sending update to subscribers:", error);
+    console.error("Error loading matches:", error);
+    return [];
   }
 };
 
-// Start the cron job if there are existing subscribers
-handleSubscriptionEvent();
+// Calculate countdown to the next match
+const getMatchCountdown = (matchDate) => {
+  const now = new Date();
+  const matchTime = new Date(matchDate);
+  const diff = matchTime - now;
+
+  if (diff <= 0) {
+    return null;
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return { hours, minutes };
+};
+
+// Send countdown updates to subscribers
+const sendMatchCountdownUpdates = async (recipientType) => {
+  const matches = await loadMatches();
+  const subscribers = await loadSubscribers();
+  const now = new Date();
+
+  const upcomingMatches = matches.filter((match) => {
+    const matchTime = new Date(match.DateUtc);
+    return matchTime > now;
+  });
+
+  if (upcomingMatches.length === 0) {
+    return;
+  }
+
+  const nextMatch = upcomingMatches[0];
+  const countdown = getMatchCountdown(nextMatch.DateUtc);
+
+  if (!countdown) {
+    return;
+  }
+
+  const message =
+    `<b>EURO 2024</b>\n\n<b>${nextMatch.Group}\n⚽ Upcoming Match</b>\n\n` +
+    `👥 <b>Teams:</b>\n${nextMatch.HomeTeam} vs ${nextMatch.AwayTeam}\n\n` +
+    `⏰ <b>Starts in:</b>\n${countdown.hours} hours, ${countdown.minutes} minutes\n\n` +
+    `📍 <b>Location:</b>\n${nextMatch.Location}`;
+
+  if (recipientType === "group") {
+    for (const groupId of subscribers.groups) {
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            {
+              text: "📊 Dexscreener",
+              url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+            },
+            { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+          ],
+        ],
+      };
+
+      bot.telegram.sendPhoto(
+        groupId,
+        {
+          source: "euro-logo.png",
+        },
+        {
+          caption: message,
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  } else if (recipientType === "user") {
+    for (const chatId of subscribers.users) {
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            {
+              text: "📊 Dexscreener",
+              url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+            },
+            { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+          ],
+        ],
+      };
+
+      bot.telegram.sendPhoto(
+        chatId,
+        {
+          source: "euro-logo.png",
+        },
+        {
+          caption: message,
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  }
+};
+
+// Start cron jobs for sending countdown updates
+const startCountdownCronJobs = () => {
+  cron.schedule("*/10 * * * *", async () => {
+    await sendMatchCountdownUpdates("group");
+  });
+
+  cron.schedule("0 */3 * * *", async () => {
+    await sendMatchCountdownUpdates("user");
+  });
+
+  console.log("Countdown cron jobs started");
+};
+
+// Update match status
+const updateMatchStatus = async () => {
+  const matches = await loadMatches();
+  const now = new Date();
+
+  for (const match of matches) {
+    const matchTime = new Date(match.DateUtc);
+
+    if (
+      now >= matchTime &&
+      now < new Date(matchTime.getTime() + 3 * 60 * 60 * 1000)
+    ) {
+      match.status = "live";
+    } else if (now >= new Date(matchTime.getTime() + 3 * 60 * 60 * 1000)) {
+      match.status = "finished";
+    } else {
+      match.status = "upcoming";
+    }
+  }
+
+  // TODO: Uncomment later
+  // await fs.writeFile("match-schedule.json", JSON.stringify(matches, null, 2));
+};
+
+async function filterMatchInfoAndToggleSuccess(jsonFilePath) {
+  // Read the JSON file
+  const jsonData = await fs.readFile(jsonFilePath, "utf-8");
+
+  // Parse the JSON data
+  const data = JSON.parse(jsonData);
+
+  // Check if the operation has already been completed
+  if (data.success === true) {
+    console.log("Operation has already been completed. Exiting...");
+    return;
+  }
+
+  // Extract match information from fixtures array
+  const matchInfo = data.data.fixtures.map((fixture) => ({
+    id: fixture.id,
+    home_team: fixture.home_name,
+    away_team: fixture.away_name,
+  }));
+
+  // Update data object with filtered match information
+  data.data.fixtures = matchInfo;
+
+  // Set success to true to indicate that operation is complete
+  data.success = true;
+
+  // Stringify the updated data
+  const updatedJsonData = JSON.stringify(data, null, 2);
+
+  // Write the updated JSON data back to the file
+  await fs.writeFile(jsonFilePath, updatedJsonData);
+
+  console.log("Filtered match information has been written back to the file.");
+}
+
+// filterMatchInfoAndToggleSuccess("match-ids.json");
+
+async function addMatchIdsToSchedule() {
+  // Read match IDs from match-ids.json
+  const matchIdsData = require("./match-ids.json");
+  const matchIds = matchIdsData.data.fixtures;
+  let success = matchIdsData.success;
+
+  // Check if the operation should proceed based on the success property
+  if (!success) {
+    // Read match schedule from match-schedule.json
+    let matchSchedule = require("./match-schedule.json");
+
+    // Loop through each match in the schedule
+    matchSchedule.forEach((match) => {
+      // Find corresponding match ID
+      const correspondingMatchId = matchIds.find(
+        (id) =>
+          id.home_team === match.HomeTeam && id.away_team === match.AwayTeam
+      );
+      // If a corresponding match ID is found, add it to the match object
+      if (correspondingMatchId) {
+        match.match_id = correspondingMatchId.match_id;
+      }
+    });
+
+    // Write updated match schedule to match-schedule.json
+    await fs.writeFile(
+      "./match-schedule.json",
+      JSON.stringify(matchSchedule, null, 2)
+    );
+
+    // Set success to true
+    success = true;
+    // Update success property in match-ids.json
+    await fs.writeFile(
+      "./match-ids.json",
+      JSON.stringify({ success, data: matchIds }, null, 2)
+    );
+
+    console.log("Match IDs added successfully!");
+  } else {
+    console.log("Operation already completed successfully.");
+  }
+}
+
+// addMatchIdsToSchedule();
+
+// Start cron job to update match status every minute
+const startMatchStatusCronJob = () => {
+  cron.schedule("* * * * *", async () => {
+    await updateMatchStatus();
+  });
+
+  console.log("Match status cron job started");
+};
+
+// Initialize all cron jobs
+startCountdownCronJobs();
+startMatchStatusCronJob();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// Launch the bot
+bot.launch();
