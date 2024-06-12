@@ -317,20 +317,36 @@ bot.command("set_bot_admin", async (ctx) => {
   }
 });
 
-bot.command("euro_live", async (ctx) => {
+async function getMatchInfo(matchId) {
+  // Fetch match scores and statistics from the API
+  const scores = await axios.get(
+    `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
+  );
+  const statistics = await axios.get(
+    `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
+  );
+
+  if (!scores.success && !statistics.success) {
+    return false;
+  } else {
+    return { score: scores.data.match.score, statistics: statistics.data };
+  }
+}
+
+async function sendStatistics(ctx) {
   try {
-    // Read the matches data
-    const data = await fs.readFile("match-schedule.json", "utf-8");
-    const matches = JSON.parse(data);
+    // Read the match schedules
+    const matchSchedules = await fs.readFile("match-schedule.json", "utf-8");
+    const matches = JSON.parse(matchSchedules);
 
     // Get the current date and time
     const now = new Date();
     let currentMatch = matches.find((match) => {
       const matchTime = new Date(match.DateUtc);
-      // Check if the current time is within the match duration (assuming 2 hours for each match)
+      // Check if the current time is within the match duration (assuming 120 minutes for each match)
       return (
         now >= matchTime &&
-        now <= new Date(matchTime.getTime() + 2 * 60 * 60 * 1000)
+        now <= new Date(matchTime.getTime() + 120 * 60 * 1000)
       );
     });
 
@@ -360,21 +376,15 @@ bot.command("euro_live", async (ctx) => {
       // Get the match ID
       const matchId = currentMatch.MatchId;
 
-      // Fetch match scores and statistics from the API
-      const scores = await axios.get(
-        `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
-      );
-      const statistics = await axios.get(
-        `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
-      );
+      const matchInfo = await getMatchInfo(matchId);
 
-      if (!scores.success && !statistics.success) {
+      if (!matchInfo) {
         ctx.reply("⚠️ Failed to retrieve match data.");
         return;
       }
 
-      const goals = scores.data.match.score;
-      const stats = statistics.data;
+      const goals = matchInfo.score;
+      const stats = matchInfo.statistics;
 
       statsMessage += `
 GOALS:  ${goals && goals}
@@ -459,6 +469,10 @@ Attacks: N/A
     console.error("Error fetching live match data:", error);
     ctx.reply("⚠️ An error occurred while fetching live match data.");
   }
+}
+
+bot.command("euro_live", async (ctx) => {
+  await sendStatistics(ctx);
 });
 
 bot.command("euro_fixtures", async (ctx) => {
@@ -618,54 +632,6 @@ bot.command("euro_standings", async (ctx) => {
     console.error("Error fetching standings:", error);
     ctx.reply("⚠️ An error occurred while fetching standings.");
   }
-});
-
-// Command to get current standings
-bot.command("euro_standings", async (ctx) => {
-  const standingsData = await fs.readFile("standings.json", "utf-8");
-  const data = JSON.parse(standingsData);
-
-  if (!data || !data.standings) {
-    ctx.reply("🏆 Standings not available.");
-    return;
-  }
-
-  const standings = data.standings;
-  let message = "🏆 <b>Teams' Previous Standings</b>\n\n";
-
-  for (const group of standings) {
-    message += `<b>${group.group}</b>\n`;
-
-    for (const team of group.teams) {
-      message += `<b>${team.position}. ${team.name}</b> - ${team.points} pts\n`;
-      message += `Matches Played: ${team.matches_played}, Wins: ${team.wins}\nDraws: ${team.draws}, Losses: ${team.losses}\n`;
-      message += `Goals For: ${team.goals_for}, Goals Against: ${team.goals_against}\nGoal Difference: ${team.goal_difference}\n\n`;
-    }
-  }
-
-  const inlineKeyboard = {
-    inline_keyboard: [
-      [
-        {
-          text: "📊 Dexscreener",
-          url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
-        },
-        { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
-      ],
-    ],
-  };
-
-  bot.telegram.sendPhoto(
-    ctx.chat.id,
-    {
-      source: "euro-logo.png",
-    },
-    {
-      caption: message,
-      parse_mode: "HTML",
-      reply_markup: inlineKeyboard,
-    }
-  );
 });
 
 // Command to get team information
@@ -892,138 +858,126 @@ const sendMatchCountdownUpdates = async (recipientType) => {
   }
 };
 
+// Send live match update
+const sendLiveMatchUpdateToGroups = async () => {
+  try {
+    // Load matches
+    const matches = await loadMatches();
+
+    // Get current time
+    const now = new Date();
+
+    // Check if there's a live match
+    const liveMatch = matches.find((match) => {
+      const matchTime = new Date(match.DateUtc);
+      return (
+        now >= matchTime &&
+        now < new Date(matchTime.getTime() + 110 * 60 * 1000)
+      );
+    });
+
+    if (liveMatch) {
+      const matchInfo = await getMatchInfo(liveMatch.matchId);
+      if (!matchInfo) {
+        return;
+      } else {
+        const groupSubscribers = await loadSubscribers();
+        for (const groupId of groupSubscribers.groups) {
+          let statsMessage = `
+<b>EURO 2024 Live Update</b>
+
+-------------------------
+🏟️ <b>${liveMatch.HomeTeam}</b> vs <b>${liveMatch.AwayTeam}</b>
+👥 ${liveMatch.Group}
+📍 ${liveMatch.Location}
+-------------------------`;
+
+          const goals = matchInfo.score;
+          const stats = matchInfo.statistics;
+
+          statsMessage += `
+GOALS:  ${goals || "N/A"}
+-------------------------
+
+📊 <b>Match Statistics</b>
+
+Yellow Cards: ${stats.yellow_cards}
+Red Cards: ${stats.red_cards}
+Substitutions: ${stats.substitutions}
+Possession: ${stats.possesion}
+Free Kicks: ${stats.free_kicks}
+Goal Kicks: ${stats.goal_kicks}
+Throw Ins: ${stats.throw_ins}
+Offsides: ${stats.offsides}
+Corners: ${stats.corners}
+Shots on Target: ${stats.shots_on_target}
+Shots off Target: ${stats.shots_off_target}
+Attempts on Goal: ${stats.attempts_on_goal}
+Saves: ${stats.saves}
+Fouls: ${stats.fauls}
+Treatments: ${stats.treatments}
+Penalties: ${stats.penalties}
+Shots Blocked: ${stats.shots_blocked}
+Dangerous Attacks: ${stats.dangerous_attacks}
+Attacks: ${stats.attacks}
+`;
+
+          const inlineKeyboard = {
+            inline_keyboard: [
+              [
+                {
+                  text: "📊 Dexscreener",
+                  url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+                },
+                { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
+              ],
+            ],
+          };
+
+          bot.telegram.sendPhoto(
+            groupId,
+            {
+              source: "euro-logo.png",
+            },
+            {
+              caption: statsMessage,
+              parse_mode: "HTML",
+              reply_markup: inlineKeyboard,
+            }
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error sending live match update:", error);
+  }
+};
+
 // Start cron jobs for sending countdown updates
 const startCountdownCronJobs = () => {
   cron.schedule("*/10 * * * *", async () => {
     await sendMatchCountdownUpdates("group");
   });
 
-  cron.schedule("0 */3 * * *", async () => {
+  cron.schedule("0 * * * *", async () => {
     await sendMatchCountdownUpdates("user");
   });
 
   console.log("Countdown cron jobs started");
 };
 
-// Update match status
-const updateMatchStatus = async () => {
-  const matches = await loadMatches();
-  const now = new Date();
-
-  for (const match of matches) {
-    const matchTime = new Date(match.DateUtc);
-
-    if (
-      now >= matchTime &&
-      now < new Date(matchTime.getTime() + 3 * 60 * 60 * 1000)
-    ) {
-      match.status = "live";
-    } else if (now >= new Date(matchTime.getTime() + 3 * 60 * 60 * 1000)) {
-      match.status = "finished";
-    } else {
-      match.status = "upcoming";
-    }
-  }
-
-  // TODO: Uncomment later
-  // await fs.writeFile("match-schedule.json", JSON.stringify(matches, null, 2));
-};
-
-async function filterMatchInfoAndToggleSuccess(jsonFilePath) {
-  // Read the JSON file
-  const jsonData = await fs.readFile(jsonFilePath, "utf-8");
-
-  // Parse the JSON data
-  const data = JSON.parse(jsonData);
-
-  // Check if the operation has already been completed
-  if (data.success === true) {
-    console.log("Operation has already been completed. Exiting...");
-    return;
-  }
-
-  // Extract match information from fixtures array
-  const matchInfo = data.data.fixtures.map((fixture) => ({
-    id: fixture.id,
-    home_team: fixture.home_name,
-    away_team: fixture.away_name,
-  }));
-
-  // Update data object with filtered match information
-  data.data.fixtures = matchInfo;
-
-  // Set success to true to indicate that operation is complete
-  data.success = true;
-
-  // Stringify the updated data
-  const updatedJsonData = JSON.stringify(data, null, 2);
-
-  // Write the updated JSON data back to the file
-  await fs.writeFile(jsonFilePath, updatedJsonData);
-
-  console.log("Filtered match information has been written back to the file.");
-}
-
-// filterMatchInfoAndToggleSuccess("match-ids.json");
-
-async function addMatchIdsToSchedule() {
-  // Read match IDs from match-ids.json
-  const matchIdsData = require("./match-ids.json");
-  const matchIds = matchIdsData.data.fixtures;
-  let success = matchIdsData.success;
-
-  // Check if the operation should proceed based on the success property
-  if (!success) {
-    // Read match schedule from match-schedule.json
-    let matchSchedule = require("./match-schedule.json");
-
-    // Loop through each match in the schedule
-    matchSchedule.forEach((match) => {
-      // Find corresponding match ID
-      const correspondingMatchId = matchIds.find(
-        (id) =>
-          id.home_team === match.HomeTeam && id.away_team === match.AwayTeam
-      );
-      // If a corresponding match ID is found, add it to the match object
-      if (correspondingMatchId) {
-        match.match_id = correspondingMatchId.match_id;
-      }
-    });
-
-    // Write updated match schedule to match-schedule.json
-    await fs.writeFile(
-      "./match-schedule.json",
-      JSON.stringify(matchSchedule, null, 2)
-    );
-
-    // Set success to true
-    success = true;
-    // Update success property in match-ids.json
-    await fs.writeFile(
-      "./match-ids.json",
-      JSON.stringify({ success, data: matchIds }, null, 2)
-    );
-
-    console.log("Match IDs added successfully!");
-  } else {
-    console.log("Operation already completed successfully.");
-  }
-}
-
-// addMatchIdsToSchedule();
-
-// Start cron job to update match status every minute
-const startMatchStatusCronJob = () => {
+// Start cron job to send update for live matches to groups
+const startLiveMatchUpdateCronJob = () => {
   cron.schedule("* * * * *", async () => {
-    await updateMatchStatus();
+    await sendLiveMatchUpdateToGroups();
   });
 
-  console.log("Match status cron job started");
+  console.log("Live match updater started.");
 };
 
 // Initialize all cron jobs
 startCountdownCronJobs();
-startMatchStatusCronJob();
+startLiveMatchUpdateCronJob();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
