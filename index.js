@@ -1,6 +1,5 @@
 const express = require("express");
-const { Telegraf, Markup, Scenes, session } = require("telegraf");
-const fs = require("fs").promises;
+const { Telegraf, Scenes, session } = require("telegraf");
 const cron = require("node-cron");
 const axios = require("axios");
 const {
@@ -22,6 +21,13 @@ const LIVE_SCORE_STATISTICS_URL =
   "https://livescore-api.com/api-client/matches/stats.json";
 const LIVE_SCORE_EVENTS_URL =
   "https://livescore-api.com/api-client/scores/events.json";
+
+const gitHubPagesBaseURL =
+  "https://mark-deoriginal.github.io/EURO2024-Telegram-Bot/public/";
+const base64EuroLogo = require("./encoded-euro-logo.js");
+const matchSchedule = require("./match-schedule.js");
+const teamStandings = require("./team-standings.js");
+const teamsInfo = require("./team-info.js");
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -188,23 +194,25 @@ const loadSubscribers = async () => {
 bot.command("start", async (ctx) => {
   const chatId = ctx.chat.id;
   if (chatId > 0) {
-    await Subscriber.findOrCreate({
-      where: { chatId, type: "user" },
-    })
-      .then(async () => {
+    try {
+      const [_, created] = await Subscriber.findOrCreate({
+        where: { chatId, type: "user" },
+      });
+
+      if (created) {
         await informBotAdmins(
           ctx,
           `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
             ctx.chat.first_name
           } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
         );
-      })
-      .catch((error) => {
-        console.error(
-          "Error creating subscriber and informing bot admins:",
-          error
-        );
-      });
+      }
+    } catch (error) {
+      console.error(
+        "Error creating subscriber and informing bot admins:",
+        error
+      );
+    }
 
     const inlineKeyboard = {
       inline_keyboard: [
@@ -243,7 +251,7 @@ Thank you for choosing Euro 2024 Messenger! ⚽️🏆`;
     bot.telegram.sendPhoto(
       chatId,
       {
-        source: "euro-logo.png",
+        source: Buffer.from(base64EuroLogo(), "base64"),
       },
       {
         caption: message,
@@ -373,9 +381,7 @@ async function getMatchInfo(matchId) {
 
 async function sendStatistics(ctx) {
   try {
-    // Read the match schedules
-    const matchSchedules = await fs.readFile("match-schedule.json", "utf-8");
-    const matches = JSON.parse(matchSchedules);
+    const matches = matchSchedule;
 
     // Get the current date and time
     const now = new Date();
@@ -495,7 +501,7 @@ Attacks: N/A
     bot.telegram.sendPhoto(
       ctx.chat.id,
       {
-        source: "euro-logo.png",
+        source: Buffer.from(base64EuroLogo(), "base64"),
       },
       {
         caption: statsMessage,
@@ -528,13 +534,7 @@ bot.command("euro_fixtures", async (ctx) => {
     }
   }
   try {
-    const matchesData = await fs.readFile("match-schedule.json", "utf-8");
-    const matches = JSON.parse(matchesData);
-
-    if (!matches || matches.length === 0) {
-      ctx.reply("📅 No scheduled matches found.");
-      return;
-    }
+    const matches = matchSchedule;
 
     const inlineKeyboard = {
       inline_keyboard: [
@@ -574,7 +574,7 @@ bot.command("euro_fixtures", async (ctx) => {
       await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
-        { source: "euro-logo.png" },
+        { source: Buffer.from(base64EuroLogo(), "base64") },
         {
           caption: messageChunks[0],
           parse_mode: "HTML",
@@ -624,15 +624,7 @@ bot.command("euro_standings", async (ctx) => {
     }
   }
   try {
-    const standingsData = await fs.readFile("standings.json", "utf-8");
-    const data = JSON.parse(standingsData);
-
-    if (!data || !data.standings) {
-      ctx.reply("🏆 Standings not available.");
-      return;
-    }
-
-    const standings = data.standings;
+    const standings = teamStandings.standings;
     let messageChunks = [];
     let message = "🏆 <b>Teams' Previous Standings</b>\n\n";
 
@@ -659,7 +651,7 @@ bot.command("euro_standings", async (ctx) => {
       await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
-        { source: "euro-logo.png" },
+        { source: Buffer.from(base64EuroLogo(), "base64") },
         {
           caption: messageChunks[0],
           parse_mode: "HTML",
@@ -721,14 +713,7 @@ bot.command("euro_teams_info", async (ctx) => {
     }
   }
   try {
-    // Load team data from JSON file
-    const rawData = await fs.readFile("team-info.json", "utf-8");
-    const teamData = JSON.parse(rawData);
-
-    if (!teamData || !teamData.teams || teamData.teams.length === 0) {
-      ctx.reply("⚽ No team information found.");
-      return;
-    }
+    const teamsData = teamsInfo;
 
     const inlineKeyboard = {
       inline_keyboard: [
@@ -744,8 +729,8 @@ bot.command("euro_teams_info", async (ctx) => {
 
     let messageChunks = [];
     let message = "<b>⚽ Euro 2024 Teams Information ⚽</b>\n\n";
-    for (let i = 0; i < teamData.teams.length; i++) {
-      const team = teamData.teams[i];
+    for (let i = 0; i < teamsData.teams.length; i++) {
+      const team = teamsData.teams[i];
       message += `<b>${i + 1}. ${team.name.toUpperCase()}</b>\n`;
       message += `🌍 Group: ${team.group}\n`;
       message += `👔 Coach: ${team.coach}\n-----------------------------------------------\n`;
@@ -756,7 +741,7 @@ bot.command("euro_teams_info", async (ctx) => {
       message += "-----------------------------------------------\n\n";
 
       // Split message into chunks of 4 teams each
-      if ((i + 1) % 4 === 0 || i === teamData.teams.length - 1) {
+      if ((i + 1) % 4 === 0 || i === teamsData.teams.length - 1) {
         messageChunks.push(message);
         message = "";
       }
@@ -767,7 +752,7 @@ bot.command("euro_teams_info", async (ctx) => {
       await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
-        { source: "euro-logo.png" },
+        { source: Buffer.from(base64EuroLogo(), "base64") },
         {
           caption: messageChunks[0],
           parse_mode: "HTML",
@@ -821,23 +806,13 @@ const informBotAdmins = async (ctx, message) => {
     const admins = await loadBotAdmins();
     if (admins.length > 0) {
       for (const admin of admins) {
-        if (!admins.includes(ctx.chat.id)) {
+        if (!admins.includes(ctx.chat.id.toString())) {
           await bot.telegram.sendMessage(admin, message);
         }
       }
     }
   } catch (error) {
     console.error("Error sending update to admin:", error);
-  }
-};
-
-const loadMatches = async () => {
-  try {
-    const data = await fs.readFile("match-schedule.json", "utf8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error loading matches:", error);
-    return [];
   }
 };
 
@@ -859,7 +834,7 @@ const getMatchCountdown = (matchDate) => {
 
 // Send countdown updates to subscribers
 const sendMatchCountdownUpdates = async (recipientType) => {
-  const matches = await loadMatches();
+  const matches = matchSchedule;
   const subscribers = await loadSubscribers();
   const now = new Date();
 
@@ -902,7 +877,7 @@ const sendMatchCountdownUpdates = async (recipientType) => {
       bot.telegram.sendPhoto(
         groupId,
         {
-          source: "euro-logo.png",
+          source: Buffer.from(base64EuroLogo(), "base64"),
         },
         {
           caption: message,
@@ -928,7 +903,7 @@ const sendMatchCountdownUpdates = async (recipientType) => {
       bot.telegram.sendPhoto(
         chatId,
         {
-          source: "euro-logo.png",
+          source: Buffer.from(base64EuroLogo(), "base64"),
         },
         {
           caption: message,
@@ -943,8 +918,7 @@ const sendMatchCountdownUpdates = async (recipientType) => {
 // Send live match update
 const sendLiveMatchUpdateToGroups = async () => {
   try {
-    // Load matches
-    const matches = await loadMatches();
+    const matches = matchSchedule;
 
     // Get current time
     const now = new Date();
@@ -1020,7 +994,7 @@ Attacks: ${stats.attacks || "N/A"}
           await bot.telegram.sendPhoto(
             groupId,
             {
-              source: "euro-logo.png",
+              source: Buffer.from(base64EuroLogo(), "base64"),
             },
             {
               caption: statsMessage,
