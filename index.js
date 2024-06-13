@@ -1,8 +1,14 @@
 const express = require("express");
-const { Telegraf, Markup } = require("telegraf");
+const { Telegraf, Markup, Scenes, session } = require("telegraf");
 const fs = require("fs").promises;
 const cron = require("node-cron");
 const axios = require("axios");
+const {
+  Subscriber,
+  BotAdmin,
+  sequelize,
+  BotAdminRequest,
+} = require("./models");
 
 require("dotenv").config();
 
@@ -18,15 +24,31 @@ const LIVE_SCORE_EVENTS_URL =
   "https://livescore-api.com/api-client/scores/events.json";
 
 const bot = new Telegraf(BOT_TOKEN);
-let cronJob;
 
 // Set up Express
 const app = express();
 app.use(express.json());
 
-// Todo: Uncomment later
 // Set webhook
-// bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
+bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
+
+// Webhook endpoint
+app.post(`/bot${BOT_TOKEN}`, (req, res) => {
+  bot.handleUpdate(req.body, res);
+});
+
+app.get("/", (req, res) => {
+  console.log("This is EURO 2024 Bot endpoint");
+  res.send("<b>This is EURO 2024 Bot endpoint</b>");
+});
+
+const sleep = async (timeout) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, timeout);
+  });
+};
 
 // Set commands for private chats
 bot.telegram.setMyCommands(
@@ -38,6 +60,7 @@ bot.telegram.setMyCommands(
     { command: "euro_teams_info", description: "Get Teams information" },
     { command: "euro_subscribe", description: "Subscribe to live updates" },
     { command: "euro_unsubscribe", description: "Unsubscribe from updates" },
+    { command: "set_bot_admin", description: "Set Bot Admin" },
   ],
   { scope: { type: "all_private_chats" } }
 );
@@ -58,170 +81,130 @@ bot.telegram.setMyCommands(
   { scope: { type: "all_group_chats" } }
 );
 
-// Webhook endpoint
-app.post(`/bot${BOT_TOKEN}`, (req, res) => {
-  bot.handleUpdate(req.body, res);
-});
-
-app.get("/", (req, res) => {
-  console.log("This is EURO 2024 Bot endpoint");
-  res.send("<b>This is EURO 2024 Bot endpoint</b>");
-});
-
-async function setWebhook() {
-  try {
-    const data = await fs.readFile("webhook-status.json");
-    const webhookSet = JSON.parse(data).isWebhookSet;
-    if (!webhookSet) {
-      await bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
-      console.log("Webhook set successfully");
-      await fs.writeFile(
-        "webhook-status.json",
-        JSON.stringify({ isWebhookSet: true })
-      );
-    }
-  } catch (error) {
-    await bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
-    console.log("Webhook set successfully");
-    await fs.writeFile(
-      "webhook-status.json",
-      JSON.stringify({ isWebhookSet: true })
-    );
-  }
-}
-
-// TODO: Uncomment later
-// Call setWebhook once when the server starts
-// setWebhook();
-
 const subscribeGroup = async (ctx, groupId) => {
   try {
-    let subscribers = await loadSubscribers();
+    const [subscriber, created] = await Subscriber.findOrCreate({
+      where: { chatId: groupId, type: "group" },
+    });
 
-    if (!subscribers.groups.includes(groupId)) {
-      subscribers.groups.push(groupId);
-      await saveSubscribers(subscribers);
-      ctx.reply("Subscription successful.");
-      await informBotAdmin(
+    if (created) {
+      await ctx.reply("Subscription successful.");
+      await informBotAdmins(
         ctx,
-        `A group just subscribed to \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A group just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
           !ctx.chat.username ? "Not available" : "@" + ctx.chat.username
-        } \nTitle: ${ctx.chat.title}`
+        }\nTitle: ${ctx.chat.title}`
       );
-      return;
+    } else {
+      ctx.reply("Group currently subscribed.");
     }
-
-    ctx.reply("Group currently subscribed.");
   } catch (error) {
     console.error("Error subscribing group:", error);
-    return false;
   }
 };
 
 const unsubscribeGroup = async (ctx, groupId) => {
   try {
-    let subscribers = await loadSubscribers();
+    const result = await Subscriber.destroy({
+      where: { chatId: groupId, type: "group" },
+    });
 
-    if (subscribers.groups.includes(groupId)) {
-      subscribers.groups = subscribers.groups.filter((id) => id !== groupId);
-      await saveSubscribers(subscribers);
-      ctx.reply("Group unsubscribed successfully.");
-      await informBotAdmin(
+    if (result) {
+      await ctx.reply("Group unsubscribed successfully.");
+      await informBotAdmins(
         ctx,
-        `A group just unsubscribed from \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A group just unsubscribed from EURO 2024 Messenger.\n\nDetails:\nUsername: ${
           !ctx.chat.username ? "Not available" : "@" + ctx.chat.username
-        } \nTitle: ${ctx.chat.title}`
+        }\nTitle: ${ctx.chat.title}`
       );
-      return;
+    } else {
+      ctx.reply("Group is currently unsubscribed.");
     }
-
-    ctx.reply("Group is currently unsubscribed.");
   } catch (error) {
     console.error("Error unsubscribing group:", error);
-    return false;
   }
 };
 
 const subscribeUser = async (ctx, chatId) => {
   try {
-    let subscribers = await loadSubscribers();
+    const [subscriber, created] = await Subscriber.findOrCreate({
+      where: { chatId, type: "user" },
+    });
 
-    if (!subscribers.users.includes(chatId)) {
-      subscribers.users.push(chatId);
-      await saveSubscribers(subscribers);
-      ctx.reply("Subscription successful.");
-      await informBotAdmin(
+    if (created) {
+      await ctx.reply("Subscription successful.");
+      await informBotAdmins(
         ctx,
-        `A Telegram User just subscribed to \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
           ctx.chat.first_name
         } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
       );
-
-      return;
+    } else {
+      ctx.reply("You're currently subscribed.");
     }
-
-    ctx.reply("You're currently subscribed.");
   } catch (error) {
     console.error("Error subscribing user:", error);
-    return false;
   }
 };
 
 const unsubscribeUser = async (ctx, chatId) => {
   try {
-    let subscribers = await loadSubscribers();
+    const result = await Subscriber.destroy({
+      where: { chatId, type: "user" },
+    });
 
-    if (subscribers.users.includes(chatId)) {
-      subscribers.users = subscribers.users.filter((id) => id !== chatId);
-      await saveSubscribers(subscribers);
-      ctx.reply("You have unsubscribed successfully.");
-      await informBotAdmin(
+    if (result) {
+      await ctx.reply("You have unsubscribed successfully.");
+      await informBotAdmins(
         ctx,
-        `A User just unsubscribed from \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A User just unsubscribed from EURO 2024 Messenger.\n\nDetails:\nUsername: ${
           ctx.chat.first_name
         } ${ctx.chat.last_name && ctx.chat.last_name}`
       );
-
-      return;
+    } else {
+      ctx.reply("You're currently unsubscribed.");
     }
-
-    ctx.reply("You're currently unsubscribed.");
   } catch (error) {
     console.error("Error unsubscribing user:", error);
-    return false;
   }
 };
 
 const loadSubscribers = async () => {
   try {
-    const data = await fs.readFile("subscribers.json", "utf8");
-    return JSON.parse(data);
+    const users = await Subscriber.findAll({ where: { type: "user" } });
+    const groups = await Subscriber.findAll({ where: { type: "group" } });
+
+    return {
+      users: users.map((user) => user.chatId),
+      groups: groups.map((group) => group.chatId),
+    };
   } catch (error) {
+    console.error("Error loading subscribers:", error);
     return { users: [], groups: [] };
   }
-};
-
-const saveSubscribers = async (subscribers) => {
-  await fs.writeFile("subscribers.json", JSON.stringify(subscribers));
 };
 
 // Command handlers
 bot.command("start", async (ctx) => {
   const chatId = ctx.chat.id;
   if (chatId > 0) {
-    // Automatically subscribe the user
-    let subscribers = await loadSubscribers();
-
-    if (!subscribers.users.includes(chatId)) {
-      subscribers.users.push(chatId);
-      await saveSubscribers(subscribers);
-      await informBotAdmin(
-        ctx,
-        `A Telegram User just subscribed to \nEURO 2024 Messenger.\n\nDetails:\nUsername: ${
-          ctx.chat.first_name
-        } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
-      );
-    }
+    await Subscriber.findOrCreate({
+      where: { chatId, type: "user" },
+    })
+      .then(async () => {
+        await informBotAdmins(
+          ctx,
+          `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
+            ctx.chat.first_name
+          } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "Error creating subscriber and informing bot admins:",
+          error
+        );
+      });
 
     const inlineKeyboard = {
       inline_keyboard: [
@@ -317,29 +300,51 @@ bot.command("euro_unsubscribe", async (ctx) => {
   }
 });
 
-bot.command("set_bot_admin", async (ctx) => {
-  const userPassword = ctx.message.text.replace("/set_bot_admin ", "");
-  if (ctx.chat.id > 0) {
-    if (userPassword === BOT_ADMIN_PASSWORD) {
-      try {
-        const admins = await loadBotAdmins();
-        if (!admins.includes(ctx.chat.id)) {
-          admins.push(ctx.chat.id);
-          await saveBotAdmins(admins);
-          ctx.reply("You have been added as admin.");
-        } else {
-          ctx.reply("You're already an admin.");
-        }
-      } catch (error) {
-        console.error("Error adding bot admin:", error);
-        ctx.reply("An error occurred while adding you as admin.");
-      }
-    } else {
-      ctx.reply(
-        "Incorrect password.\nRun command again with correct password."
-      );
-    }
+const setPasswordScene = new Scenes.BaseScene("setPassword");
+
+setPasswordScene.on("text", async (ctx) => {
+  const password = ctx.message.text;
+  const userId = ctx.from.id.toString();
+
+  const isPasswordValid = password === BOT_ADMIN_PASSWORD;
+
+  if (isPasswordValid) {
+    const [admin, created] = await BotAdmin.findOrCreate({
+      where: { chatId: userId },
+    });
+    ctx.reply(
+      created ? "You have been added as an admin." : "You're already an admin."
+    );
+
+    await BotAdminRequest.destroy({ where: { userId } });
+  } else {
+    ctx.reply("Incorrect password. Please try again.");
   }
+
+  // Leave the scene after password handling
+  ctx.scene.leave();
+});
+
+// Create the stage and register the scene
+const stage = new Scenes.Stage([setPasswordScene]);
+
+bot.use(session());
+bot.use(stage.middleware());
+
+// Bot command to initiate the admin setup
+bot.command("set_bot_admin", async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const existingRequest = await BotAdminRequest.findOne({ where: { userId } });
+  if (existingRequest) {
+    ctx.reply("Enter correct password:");
+  } else {
+    setPasswordScene.enter((ctx) => {
+      ctx.reply("Enter correct password:");
+    });
+
+    await BotAdminRequest.create({ userId });
+  }
+  ctx.scene.enter("setPassword");
 });
 
 async function getMatchInfo(matchId) {
@@ -566,6 +571,7 @@ bot.command("euro_fixtures", async (ctx) => {
 
     // Send the first batch with the image
     if (messageChunks.length > 0) {
+      await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
         { source: "euro-logo.png" },
@@ -578,6 +584,7 @@ bot.command("euro_fixtures", async (ctx) => {
 
     // Send remaining batches without image
     for (let i = 1; i < messageChunks.length - 1; i++) {
+      await sleep(300);
       await bot.telegram.sendMessage(ctx.chat.id, messageChunks[i], {
         parse_mode: "HTML",
       });
@@ -585,6 +592,7 @@ bot.command("euro_fixtures", async (ctx) => {
 
     // Send the last batch with buttons
     if (messageChunks.length > 1) {
+      await sleep(300);
       await bot.telegram.sendMessage(
         ctx.chat.id,
         messageChunks[messageChunks.length - 1],
@@ -648,6 +656,7 @@ bot.command("euro_standings", async (ctx) => {
 
     // Send the first batch with the image
     if (messageChunks.length > 0) {
+      await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
         { source: "euro-logo.png" },
@@ -660,6 +669,7 @@ bot.command("euro_standings", async (ctx) => {
 
     // Send remaining batches without image
     for (let i = 1; i < messageChunks.length - 1; i++) {
+      await sleep(300);
       await bot.telegram.sendMessage(ctx.chat.id, messageChunks[i], {
         parse_mode: "HTML",
       });
@@ -754,6 +764,7 @@ bot.command("euro_teams_info", async (ctx) => {
 
     // Send the first batch with the image
     if (messageChunks.length > 0) {
+      await sleep(300);
       await bot.telegram.sendPhoto(
         ctx.chat.id,
         { source: "euro-logo.png" },
@@ -773,6 +784,7 @@ bot.command("euro_teams_info", async (ctx) => {
 
     // Send the last batch with buttons
     if (messageChunks.length > 1) {
+      await sleep(300);
       await bot.telegram.sendMessage(
         ctx.chat.id,
         messageChunks[messageChunks.length - 1],
@@ -792,34 +804,30 @@ bot.command("euro_teams_info", async (ctx) => {
 
 const loadBotAdmins = async () => {
   try {
-    const data = await fs.readFile("bot-admins.json", "utf8");
-    return JSON.parse(data);
+    const admins = await BotAdmin.findAll({
+      attributes: ["chatId"], // Only fetch the chatId column
+    });
+
+    // Map the result to an array of chat IDs
+    return admins.map((admin) => admin.chatId);
   } catch (error) {
+    console.error("Error loading bot admins:", error);
     return [];
   }
 };
 
-const saveBotAdmins = async (admins) => {
-  try {
-    await fs.writeFile("bot-admins.json", JSON.stringify(admins));
-  } catch (error) {
-    console.error("Error saving bot admins:", error);
-    throw error;
-  }
-};
-
-const informBotAdmin = async (ctx, message) => {
+const informBotAdmins = async (ctx, message) => {
   try {
     const admins = await loadBotAdmins();
     if (admins.length > 0) {
       for (const admin of admins) {
-        if (admin !== ctx.chat.id) {
+        if (!admins.includes(ctx.chat.id)) {
           await bot.telegram.sendMessage(admin, message);
         }
       }
     }
   } catch (error) {
-    console.error("Error sending update to creator:", error);
+    console.error("Error sending update to admin:", error);
   }
 };
 
@@ -943,10 +951,9 @@ const sendLiveMatchUpdateToGroups = async () => {
 
     // Check if there's a live match
     const liveMatch = matches.find((match) => {
-      const matchTime = new Date(match.DateUtc);
+      const matchTime = new Date(match.DateUtc).getTime();
       return (
-        now >= matchTime &&
-        now < new Date(matchTime.getTime() + 110 * 60 * 1000)
+        now >= matchTime + 2 * 60 * 1000 && now < matchTime + 110 * 60 * 1000
       );
     });
 
@@ -1057,9 +1064,14 @@ const startLiveMatchUpdateCronJob = () => {
 startCountdownCronJobs();
 startLiveMatchUpdateCronJob();
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-// Launch the bot
-bot.launch();
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log("Database connection established successfully.");
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Unable to connect to the database:", err);
+  });
