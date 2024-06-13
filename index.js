@@ -3,7 +3,6 @@ const { Telegraf, Markup } = require("telegraf");
 const fs = require("fs").promises;
 const cron = require("node-cron");
 const axios = require("axios");
-// const Markup = require("telegraf/markup");
 
 require("dotenv").config();
 
@@ -272,23 +271,49 @@ Thank you for choosing Euro 2024 Messenger! ⚽️🏆`;
   }
 });
 
+// Function to check if a user is an admin
+async function isAdmin(ctx, chatId, userId) {
+  const admins = await ctx.telegram.getChatAdministrators(chatId);
+  return admins.some((admin) => admin.user.id === userId);
+}
+
 bot.command("euro_subscribe", async (ctx) => {
   const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
   if (chatId > 0) {
+    // This is a private chat
     await subscribeUser(ctx, chatId);
   } else {
-    const groupId = ctx.chat.id;
-    await subscribeGroup(ctx, groupId);
+    // This is a group chat
+    const userIsAdmin = await isAdmin(ctx, chatId, userId);
+    if (userIsAdmin) {
+      await subscribeGroup(ctx, chatId);
+    } else {
+      ctx.reply(
+        "🚫 This command is only for group admins, but you can message me privately to access it."
+      );
+    }
   }
 });
 
 bot.command("euro_unsubscribe", async (ctx) => {
   const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
   if (chatId > 0) {
+    // This is a private chat
     await unsubscribeUser(ctx, chatId);
   } else {
-    const groupId = ctx.chat.id;
-    await unsubscribeGroup(ctx, groupId);
+    // This is a group chat
+    const userIsAdmin = await isAdmin(ctx, chatId, userId);
+    if (userIsAdmin) {
+      await unsubscribeGroup(ctx, chatId);
+    } else {
+      ctx.reply(
+        "🚫 This command is only for group admins, but you can message me privately to access it."
+      );
+    }
   }
 });
 
@@ -318,18 +343,26 @@ bot.command("set_bot_admin", async (ctx) => {
 });
 
 async function getMatchInfo(matchId) {
-  // Fetch match scores and statistics from the API
-  const scores = await axios.get(
-    `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
-  );
-  const statistics = await axios.get(
-    `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
-  );
+  try {
+    // Fetch match scores and statistics from the API
+    const scoresResponse = await axios.get(
+      `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
+    );
+    const statisticsResponse = await axios.get(
+      `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
+    );
 
-  if (!scores.success && !statistics.success) {
+    if (scoresResponse.data.success && statisticsResponse.data.success) {
+      return {
+        score: scoresResponse.data.data.match.score,
+        statistics: statisticsResponse.data.data,
+      };
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Error fetching match information:", error);
     return false;
-  } else {
-    return { score: scores.data.match.score, statistics: statistics.data };
   }
 }
 
@@ -476,6 +509,19 @@ bot.command("euro_live", async (ctx) => {
 });
 
 bot.command("euro_fixtures", async (ctx) => {
+  const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
+  if (chatId < 0) {
+    const userIsAdmin = await isAdmin(ctx, chatId, userId);
+    if (!userIsAdmin) {
+      ctx.reply(
+        "🚫 This command is only for group admins, but you can message me privately to access it."
+      );
+
+      return;
+    }
+  }
   try {
     const matchesData = await fs.readFile("match-schedule.json", "utf-8");
     const matches = JSON.parse(matchesData);
@@ -555,6 +601,20 @@ bot.command("euro_fixtures", async (ctx) => {
 });
 
 bot.command("euro_standings", async (ctx) => {
+  const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
+  if (chatId < 0) {
+    // This is a group chat
+    const userIsAdmin = await isAdmin(ctx, chatId, userId);
+    if (!userIsAdmin) {
+      ctx.reply(
+        "🚫 This command is only for group admins, but you can message me privately to access it."
+      );
+
+      return;
+    }
+  }
   try {
     const standingsData = await fs.readFile("standings.json", "utf-8");
     const data = JSON.parse(standingsData);
@@ -636,6 +696,20 @@ bot.command("euro_standings", async (ctx) => {
 
 // Command to get team information
 bot.command("euro_teams_info", async (ctx) => {
+  const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
+  if (chatId < 0) {
+    // This is a group chat
+    const userIsAdmin = await isAdmin(ctx, chatId, userId);
+    if (!userIsAdmin) {
+      ctx.reply(
+        "🚫 This command is only for group admins, but you can message me privately to access it."
+      );
+
+      return;
+    }
+  }
   try {
     // Load team data from JSON file
     const rawData = await fs.readFile("team-info.json", "utf-8");
@@ -880,10 +954,11 @@ const sendLiveMatchUpdateToGroups = async () => {
       const matchInfo = await getMatchInfo(liveMatch.matchId);
       if (!matchInfo) {
         return;
-      } else {
-        const groupSubscribers = await loadSubscribers();
-        for (const groupId of groupSubscribers.groups) {
-          let statsMessage = `
+      }
+
+      const groupSubscribers = await loadSubscribers();
+      for (const groupId of groupSubscribers.groups) {
+        let statsMessage = `
 <b>EURO 2024 Live Update</b>
 
 -------------------------
@@ -892,49 +967,50 @@ const sendLiveMatchUpdateToGroups = async () => {
 📍 ${liveMatch.Location}
 -------------------------`;
 
-          const goals = matchInfo.score;
-          const stats = matchInfo.statistics;
+        const goals = matchInfo.score;
+        const stats = matchInfo.statistics;
 
-          statsMessage += `
+        statsMessage += `
 GOALS:  ${goals || "N/A"}
 -------------------------
 
 📊 <b>Match Statistics</b>
 
-Yellow Cards: ${stats.yellow_cards}
-Red Cards: ${stats.red_cards}
-Substitutions: ${stats.substitutions}
-Possession: ${stats.possesion}
-Free Kicks: ${stats.free_kicks}
-Goal Kicks: ${stats.goal_kicks}
-Throw Ins: ${stats.throw_ins}
-Offsides: ${stats.offsides}
-Corners: ${stats.corners}
-Shots on Target: ${stats.shots_on_target}
-Shots off Target: ${stats.shots_off_target}
-Attempts on Goal: ${stats.attempts_on_goal}
-Saves: ${stats.saves}
-Fouls: ${stats.fauls}
-Treatments: ${stats.treatments}
-Penalties: ${stats.penalties}
-Shots Blocked: ${stats.shots_blocked}
-Dangerous Attacks: ${stats.dangerous_attacks}
-Attacks: ${stats.attacks}
+Yellow Cards: ${stats.yellow_cards || "N/A"}
+Red Cards: ${stats.red_cards || "N/A"}
+Substitutions: ${stats.substitutions || "N/A"}
+Possession: ${stats.possession || "N/A"}
+Free Kicks: ${stats.free_kicks || "N/A"}
+Goal Kicks: ${stats.goal_kicks || "N/A"}
+Throw Ins: ${stats.throw_ins || "N/A"}
+Offsides: ${stats.offsides || "N/A"}
+Corners: ${stats.corners || "N/A"}
+Shots on Target: ${stats.shots_on_target || "N/A"}
+Shots off Target: ${stats.shots_off_target || "N/A"}
+Attempts on Goal: ${stats.attempts_on_goal || "N/A"}
+Saves: ${stats.saves || "N/A"}
+Fouls: ${stats.fouls || "N/A"}
+Treatments: ${stats.treatments || "N/A"}
+Penalties: ${stats.penalties || "N/A"}
+Shots Blocked: ${stats.shots_blocked || "N/A"}
+Dangerous Attacks: ${stats.dangerous_attacks || "N/A"}
+Attacks: ${stats.attacks || "N/A"}
 `;
 
-          const inlineKeyboard = {
-            inline_keyboard: [
-              [
-                {
-                  text: "📊 Dexscreener",
-                  url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
-                },
-                { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
-              ],
+        const inlineKeyboard = {
+          inline_keyboard: [
+            [
+              {
+                text: "📊 Dexscreener",
+                url: "https://dexscreener.com/solana/chrwlawxd2mmtavx5abpyajzqzak8jvfvbybwih3kqwk",
+              },
+              { text: "👥 Community", url: "https://t.me/EURO2024Solana" },
             ],
-          };
+          ],
+        };
 
-          bot.telegram.sendPhoto(
+        try {
+          await bot.telegram.sendPhoto(
             groupId,
             {
               source: "euro-logo.png",
@@ -945,6 +1021,8 @@ Attacks: ${stats.attacks}
               reply_markup: inlineKeyboard,
             }
           );
+        } catch (error) {
+          console.error(`Error sending photo to group ${groupId}:`, error);
         }
       }
     }
