@@ -17,10 +17,7 @@ const BOT_ADMIN_PASSWORD = process.env.BOT_ADMIN_PASSWORD;
 const HOST = process.env.HOST;
 const LIVE_SCORE_API_KEY = process.env.LIVE_SCORE_API_KEY;
 const LIVE_SCORE_SECRET_KEY = process.env.LIVE_SCORE_SECRET_KEY;
-const LIVE_SCORE_STATISTICS_URL =
-  "https://livescore-api.com/api-client/matches/stats.json";
-const LIVE_SCORE_EVENTS_URL =
-  "https://livescore-api.com/api-client/scores/events.json";
+const EURO_LIVE_MATCH = `https://livescore-api.com/api-client/matches/live.json?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&competition_id=387`;
 
 const base64EuroLogo = require("./encoded-euro-logo.js");
 const matchSchedule = require("./match-schedule.js");
@@ -375,20 +372,25 @@ bot.command("set_bot_admin", async (ctx) => {
   ctx.scene.enter("setPassword");
 });
 
-async function getMatchInfo(matchId) {
+async function getMatchInfo() {
   try {
-    // Fetch match scores and statistics from the API
-    const scoresResponse = await axios.get(
-      `${LIVE_SCORE_EVENTS_URL}?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&id=${matchId}`
-    );
-    const statisticsResponse = await axios.get(
-      `${LIVE_SCORE_STATISTICS_URL}?match_id=${matchId}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`
-    );
+    // Fetch match scores from the API
+    const liveMatchResponse = await axios.get(EURO_LIVE_MATCH);
+    const liveMatch = liveMatchResponse.data.data.match[0];
 
-    if (scoresResponse.data.success && statisticsResponse.data.success) {
+    // Fetch match statistics from the API
+    const statisticsUrl = `${liveMatch.urls.statistics}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`;
+    const statisticsResponse = await axios.get(statisticsUrl);
+    const statistics = statisticsResponse.data.data;
+
+    console.log(statisticsResponse);
+    console.log(liveMatchResponse);
+
+    // Check if both requests were successful
+    if (liveMatchResponse.data.success && statisticsResponse.data.success) {
       return {
-        score: scoresResponse.data.data.match.score,
-        statistics: statisticsResponse.data.data,
+        score: liveMatch.scores.score,
+        statistics: statistics,
       };
     } else {
       return false;
@@ -437,12 +439,9 @@ async function sendStatistics(ctx) {
 -------------------------`;
 
     if (isLive) {
-      // Get the match ID
-      const matchId = currentMatch.MatchId;
+      const matchInfo = await getMatchInfo();
 
-      const matchInfo = await getMatchInfo(matchId);
-
-      if (!matchInfo) {
+      if (matchInfo == false) {
         ctx.reply("⚠️ Failed to retrieve match data.");
         return;
       }
@@ -809,7 +808,6 @@ bot.command("euro_teams_info", async (ctx) => {
 
 bot.command("list_subscribers", async (ctx) => {
   const chatId = ctx.chat.id;
-  const userId = ctx.message.from.id;
 
   if (chatId > 0) {
     // This is a private chat
@@ -1039,8 +1037,8 @@ const sendLiveMatchUpdateToGroups = async () => {
     });
 
     if (liveMatch) {
-      const matchInfo = await getMatchInfo(liveMatch.MatchId);
-      if (!matchInfo) {
+      const matchInfo = await getMatchInfo();
+      if (matchInfo == false) {
         return;
       }
 
@@ -1156,5 +1154,3 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
-
-bot.launch();
