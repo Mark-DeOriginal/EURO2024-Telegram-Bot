@@ -22,8 +22,6 @@ const LIVE_SCORE_STATISTICS_URL =
 const LIVE_SCORE_EVENTS_URL =
   "https://livescore-api.com/api-client/scores/events.json";
 
-const gitHubPagesBaseURL =
-  "https://mark-deoriginal.github.io/EURO2024-Telegram-Bot/public/";
 const base64EuroLogo = require("./encoded-euro-logo.js");
 const matchSchedule = require("./match-schedule.js");
 const teamStandings = require("./team-standings.js");
@@ -36,7 +34,14 @@ const app = express();
 app.use(express.json());
 
 // Set webhook
-bot.telegram.setWebhook(`${HOST}/bot${BOT_TOKEN}`);
+bot.telegram
+  .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
+  .then(() => {
+    console.log("Telegram Webhook set successfully.");
+  })
+  .catch((error) => {
+    console.error("Error setting Telegram Webhook", error);
+  });
 
 // Webhook endpoint
 app.post(`/bot${BOT_TOKEN}`, (req, res) => {
@@ -431,30 +436,30 @@ async function sendStatistics(ctx) {
       const stats = matchInfo.statistics;
 
       statsMessage += `
-GOALS:  ${goals && goals}
+GOALS:  ${goals || "N/A"}
 -------------------------
 
 📊 <b>Match Statistics</b>
 
-Yellow Cards: ${stats.yellow_cards}
-Red Cards: ${stats.red_cards}
-Substitutions: ${stats.substitutions}
-Possession: ${stats.possesion}
-Free Kicks: ${stats.free_kicks}
-Goal Kicks: ${stats.goal_kicks}
-Throw Ins: ${stats.throw_ins}
-Offsides: ${stats.offsides}
-Corners: ${stats.corners}
-Shots on Target: ${stats.shots_on_target}
-Shots off Target: ${stats.shots_off_target}
-Attempts on Goal: ${stats.attempts_on_goal}
-Saves: ${stats.saves}
-Fouls: ${stats.fauls}
-Treatments: ${stats.treatments}
-Penalties: ${stats.penalties}
-Shots Blocked: ${stats.shots_blocked}
-Dangerous Attacks: ${stats.dangerous_attacks}
-Attacks: ${stats.attacks}
+Yellow Cards: ${stats.yellow_cards || "N/A"}
+Red Cards: ${stats.red_cards || "N/A"}
+Substitutions: ${stats.substitutions || "N/A"}
+Possession: ${stats.possesion || "N/A"}
+Free Kicks: ${stats.free_kicks || "N/A"}
+Goal Kicks: ${stats.goal_kicks || "N/A"}
+Throw Ins: ${stats.throw_ins || "N/A"}
+Offsides: ${stats.offsides || "N/A"}
+Corners: ${stats.corners || "N/A"}
+Shots on Target: ${stats.shots_on_target || "N/A"}
+Shots off Target: ${stats.shots_off_target || "N/A"}
+Attempts on Goal: ${stats.attempts_on_goal || "N/A"}
+Saves: ${stats.saves || "N/A"}
+Fouls: ${stats.fauls || "N/A"}
+Treatments: ${stats.treatments || "N/A"}
+Penalties: ${stats.penalties || "N/A"}
+Shots Blocked: ${stats.shots_blocked || "N/A"}
+Dangerous Attacks: ${stats.dangerous_attacks || "N/A"}
+Attacks: ${stats.attacks || "N/A"}
 `;
     } else {
       statsMessage += `
@@ -832,14 +837,29 @@ const getMatchCountdown = (matchDate) => {
   return { hours, minutes };
 };
 
+let liveMatchEndTime = null;
+
 // Send countdown updates to subscribers
 const sendMatchCountdownUpdates = async (recipientType) => {
   const matches = matchSchedule;
   const subscribers = await loadSubscribers();
-  const now = new Date();
+  const now = new Date().getTime();
+
+  // Check if there's a currently live match
+  if (liveMatchEndTime && now < liveMatchEndTime) {
+    return; // A match is currently live, so don't send new upcoming match updates
+  }
+
+  // Reset the live match end time if past it
+  if (liveMatchEndTime && now >= liveMatchEndTime) {
+    liveMatchEndTime = null;
+  }
+
+  // Sort matches by DateUtc to ensure the first upcoming match is the earliest one
+  matches.sort((a, b) => new Date(a.DateUtc) - new Date(b.DateUtc));
 
   const upcomingMatches = matches.filter((match) => {
-    const matchTime = new Date(match.DateUtc);
+    const matchTime = new Date(match.DateUtc).getTime();
     return matchTime > now;
   });
 
@@ -848,6 +868,17 @@ const sendMatchCountdownUpdates = async (recipientType) => {
   }
 
   const nextMatch = upcomingMatches[0];
+  const nextMatchTime = new Date(nextMatch.DateUtc).getTime();
+
+  // Set the live match end time
+  if (
+    now >= nextMatchTime - 2 * 60 * 1000 &&
+    now < nextMatchTime + 110 * 60 * 1000
+  ) {
+    liveMatchEndTime = nextMatchTime + 110 * 60 * 1000;
+    return; // The match is starting soon or currently live, stop sending countdown updates
+  }
+
   const countdown = getMatchCountdown(nextMatch.DateUtc);
 
   if (!countdown) {
@@ -920,8 +951,11 @@ const sendLiveMatchUpdateToGroups = async () => {
   try {
     const matches = matchSchedule;
 
+    // Sort matches by DateUtc to ensure the first live match is the earliest one
+    matches.sort((a, b) => new Date(a.DateUtc) - new Date(b.DateUtc));
+
     // Get current time
-    const now = new Date();
+    const now = new Date().getTime();
 
     // Check if there's a live match
     const liveMatch = matches.find((match) => {
@@ -932,7 +966,7 @@ const sendLiveMatchUpdateToGroups = async () => {
     });
 
     if (liveMatch) {
-      const matchInfo = await getMatchInfo(liveMatch.matchId);
+      const matchInfo = await getMatchInfo(liveMatch.MatchId);
       if (!matchInfo) {
         return;
       }
