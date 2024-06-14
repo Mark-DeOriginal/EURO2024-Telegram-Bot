@@ -43,14 +43,18 @@ bot.telegram
     console.error("Error setting Telegram Webhook", error);
   });
 
-// Webhook endpoint
+// // Webhook endpoint
+// app.post(`/bot${BOT_TOKEN}`, (req, res) => {
+//   bot.handleUpdate(req.body, res);
+// });
+
+// app.get("/", (req, res) => {
+//   console.log("This is EURO 2024 Bot endpoint");
+//   res.send("<b>This is EURO 2024 Bot endpoint</b>");
+// });
+
 app.post(`/bot${BOT_TOKEN}`, (req, res) => {
   bot.handleUpdate(req.body, res);
-});
-
-app.get("/", (req, res) => {
-  console.log("This is EURO 2024 Bot endpoint");
-  res.send("<b>This is EURO 2024 Bot endpoint</b>");
 });
 
 const sleep = async (timeout) => {
@@ -1083,3 +1087,5 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
+
+module.exports = app;
