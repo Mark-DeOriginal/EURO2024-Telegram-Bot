@@ -146,9 +146,14 @@ const subscribeUser = async (ctx, chatId) => {
       await ctx.reply("Subscription successful.");
       await informBotAdmins(
         ctx,
-        `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nName:${
           ctx.chat.first_name
-        } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
+        } ${
+          (ctx.chat.last_name && ctx.chat.last_name) || "Not available"
+        }\nUsername: ${
+          (ctx.message.from.username && "@" + ctx.message.from.username) ||
+          "Not available"
+        } `
       );
     } else {
       ctx.reply("You're currently subscribed.");
@@ -168,9 +173,14 @@ const unsubscribeUser = async (ctx, chatId) => {
       await ctx.reply("You have unsubscribed successfully.");
       await informBotAdmins(
         ctx,
-        `A User just unsubscribed from EURO 2024 Messenger.\n\nDetails:\nUsername: ${
+        `A User just unsubscribed from EURO 2024 Messenger.\n\nDetails:\nName:${
           ctx.chat.first_name
-        } ${ctx.chat.last_name && ctx.chat.last_name}`
+        } ${
+          (ctx.chat.last_name && ctx.chat.last_name) || "Not available"
+        }\nUsername: ${
+          (ctx.message.from.username && "@" + ctx.message.from.username) ||
+          "Not available"
+        } `
       );
     } else {
       ctx.reply("You're currently unsubscribed.");
@@ -207,9 +217,14 @@ bot.command("start", async (ctx) => {
       if (created) {
         await informBotAdmins(
           ctx,
-          `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nUsername: ${
+          `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nName:${
             ctx.chat.first_name
-          } ${(ctx.chat.last_name && ctx.chat.last_name) || "Not available"}`
+          } ${
+            (ctx.chat.last_name && ctx.chat.last_name) || "Not available"
+          }\nUsername: ${
+            (ctx.message.from.username && "@" + ctx.message.from.username) ||
+            "Not available"
+          } `
         );
       }
     } catch (error) {
@@ -792,6 +807,64 @@ bot.command("euro_teams_info", async (ctx) => {
   }
 });
 
+bot.command("list_subscribers", async (ctx) => {
+  const chatId = ctx.chat.id;
+  const userId = ctx.message.from.id;
+
+  if (chatId > 0) {
+    // This is a private chat
+    const adminList = await loadBotAdmins();
+
+    if (!adminList.includes(chatId.toString())) {
+      ctx.reply("🚫 This command is only for admins.");
+      return;
+    }
+  }
+
+  try {
+    const subscribers = await loadSubscribers();
+    const userSubscribers = subscribers.users;
+    const groupSubscribers = subscribers.groups;
+
+    let userList = `<b>User Subscribers:</b>\n\n`;
+
+    for (const userSubscriber of userSubscribers) {
+      try {
+        const chat = await bot.telegram.getChat(userSubscriber);
+        userList += `Name: ${chat.first_name || "N/A"} ${
+          chat.last_name || ""
+        }\nUsername: ${chat.username ? "@" + chat.username : "N/A"}\n`;
+      } catch (error) {
+        console.error(
+          `Error fetching chat info for user ${userSubscriber}:`,
+          error
+        );
+      }
+    }
+
+    userList += `\n<b>Group Subscribers:</b>\n\n`;
+
+    for (const groupSubscriber of groupSubscribers) {
+      try {
+        const chat = await bot.telegram.getChat(groupSubscriber);
+        userList += `Group Name: ${chat.title}\nUsername: ${
+          chat.username ? "@" + chat.username : "N/A"
+        }\n`;
+      } catch (error) {
+        console.error(
+          `Error fetching chat info for group ${groupSubscriber}:`,
+          error
+        );
+      }
+    }
+
+    ctx.reply(userList, { parse_mode: "HTML" });
+  } catch (error) {
+    console.error("Error fetching subscribers:", error);
+    ctx.reply("⚠️ An error occurred while fetching subscribers.");
+  }
+});
+
 const loadBotAdmins = async () => {
   try {
     const admins = await BotAdmin.findAll({
@@ -1083,3 +1156,5 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
+
+bot.launch();
