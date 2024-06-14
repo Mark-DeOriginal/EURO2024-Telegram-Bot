@@ -7,7 +7,7 @@ const {
   BotAdmin,
   sequelize,
   BotAdminRequest,
-} = require("../models/index.js");
+} = require("./models");
 
 require("dotenv").config();
 
@@ -22,10 +22,10 @@ const LIVE_SCORE_STATISTICS_URL =
 const LIVE_SCORE_EVENTS_URL =
   "https://livescore-api.com/api-client/scores/events.json";
 
-const base64EuroLogo = require("../encoded-euro-logo.js");
-const matchSchedule = require("../match-schedule.js");
-const teamStandings = require("../team-standings.js");
-const teamsInfo = require("../team-info.js");
+const base64EuroLogo = require("./encoded-euro-logo.js");
+const matchSchedule = require("./match-schedule.js");
+const teamStandings = require("./team-standings.js");
+const teamsInfo = require("./team-info.js");
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -43,11 +43,13 @@ bot.telegram
     console.error("Error setting Telegram Webhook", error);
   });
 
+// Webhook endpoint
 app.post(`/bot${BOT_TOKEN}`, (req, res) => {
   bot.handleUpdate(req.body, res);
 });
 
-app.get(`/`, (req, res) => {
+app.get("/", (req, res) => {
+  console.log("This is EURO 2024 Bot endpoint");
   res.send("<b>This is EURO 2024 Bot endpoint</b>");
 });
 
@@ -1081,5 +1083,3 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
-
-module.exports = app;
