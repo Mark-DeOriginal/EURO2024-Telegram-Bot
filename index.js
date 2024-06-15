@@ -1119,7 +1119,7 @@ Attacks: ${stats.attacks || "N/A"}
 
 // Start cron jobs for sending countdown updates
 const startCountdownCronJobs = () => {
-  cron.schedule("*/10 * * * *", async () => {
+  cron.schedule("*/30 * * * *", async () => {
     await sendMatchCountdownUpdates("group");
   });
 
@@ -1132,7 +1132,7 @@ const startCountdownCronJobs = () => {
 
 // Start cron job to send update for live matches to groups
 const startLiveMatchUpdateCronJob = () => {
-  cron.schedule("* * * * *", async () => {
+  cron.schedule("*/3 * * * *", async () => {
     await sendLiveMatchUpdateToGroups();
   });
 
