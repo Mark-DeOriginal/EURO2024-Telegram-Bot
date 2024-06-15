@@ -33,14 +33,14 @@ const app = express();
 app.use(express.json());
 
 // // Set webhook
-// bot.telegram
-//   .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
-//   .then(() => {
-//     console.log("Telegram Webhook set successfully.");
-//   })
-//   .catch((error) => {
-//     console.error("Error setting Telegram Webhook", error);
-//   });
+bot.telegram
+  .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
+  .then(() => {
+    console.log("Telegram Webhook set successfully.");
+  })
+  .catch((error) => {
+    console.error("Error setting Telegram Webhook", error);
+  });
 
 // Webhook endpoint
 app.post(`/bot${BOT_TOKEN}`, (req, res) => {
@@ -1156,5 +1156,3 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
-
-bot.launch();
