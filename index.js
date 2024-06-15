@@ -2,7 +2,7 @@ const express = require("express");
 const { Telegraf, Scenes, session } = require("telegraf");
 const cron = require("node-cron");
 const axios = require("axios");
-const fs = require("fs").promises;
+// const fs = require("fs").promises;
 
 const {
   Subscriber,
@@ -378,7 +378,8 @@ async function getMatchInfo() {
   try {
     // Fetch match scores from the API
     const liveMatchResponse = await axios.get(EURO_LIVE_MATCH);
-    const liveMatch = liveMatchResponse.data.data.match[0];
+    const matches = liveMatchResponse.data.data.match;
+    const liveMatch = matches[matches.length - 1];
 
     // Fetch match statistics from the API
     const statisticsUrl = `${liveMatch.urls.statistics}&key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}`;
