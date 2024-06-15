@@ -579,7 +579,7 @@ bot.command("euro_fixtures", async (ctx) => {
         match.DateUtc
       ).toLocaleDateString()} \n⏰ Time: ${new Date(
         match.DateUtc
-      ).toLocaleTimeString()} \n📍 Location: ${match.Location} ${
+      ).toLocaleTimeString()} UTC \n📍 Location: ${match.Location} ${
         match.Group == null ? "" : `\n🎉 Group: ${match.Group}`
       }\n\n`;
 
