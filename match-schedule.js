@@ -1,6 +1,6 @@
 module.exports = [
   {
-    DateUtc: "2024-06-14T19:00:00Z",
+    DateUtc: "2024-06-14T18:00:00.000Z",
     Location: "Fußball Arena München",
     HomeTeam: "Germany",
     AwayTeam: "Scotland",
@@ -8,7 +8,7 @@ module.exports = [
     MatchId: 1676019,
   },
   {
-    DateUtc: "2024-06-15T14:00:00Z",
+    DateUtc: "2024-06-15T13:00:00.000Z",
     Location: "Stadion Köln",
     HomeTeam: "Hungary",
     AwayTeam: "Switzerland",
@@ -16,7 +16,7 @@ module.exports = [
     MatchId: 1676020,
   },
   {
-    DateUtc: "2024-06-15T17:00:00Z",
+    DateUtc: "2024-06-15T16:00:00.000Z",
     Location: "Olympiastadion",
     HomeTeam: "Spain",
     AwayTeam: "Croatia",
@@ -24,7 +24,7 @@ module.exports = [
     MatchId: 1676021,
   },
   {
-    DateUtc: "2024-06-15T20:00:00Z",
+    DateUtc: "2024-06-15T19:00:00.000Z",
     Location: "BVB Stadion Dortmund",
     HomeTeam: "Italy",
     AwayTeam: "Albania",
@@ -32,7 +32,7 @@ module.exports = [
     MatchId: 1676022,
   },
   {
-    DateUtc: "2024-06-16T14:00:00Z",
+    DateUtc: "2024-06-16T13:00:00.000Z",
     Location: "Volksparkstadion",
     HomeTeam: "Poland",
     AwayTeam: "Netherlands",
@@ -40,7 +40,7 @@ module.exports = [
     MatchId: 1676025,
   },
   {
-    DateUtc: "2024-06-16T17:00:00Z",
+    DateUtc: "2024-06-16T16:00:00.000Z",
     Location: "Arena Stuttgart",
     HomeTeam: "Slovenia",
     AwayTeam: "Denmark",
@@ -48,7 +48,7 @@ module.exports = [
     MatchId: 1676023,
   },
   {
-    DateUtc: "2024-06-16T20:00:00Z",
+    DateUtc: "2024-06-16T19:00:00.000Z",
     Location: "Arena AufSchalke",
     HomeTeam: "Serbia",
     AwayTeam: "England",
@@ -56,7 +56,7 @@ module.exports = [
     MatchId: 1676024,
   },
   {
-    DateUtc: "2024-06-17T14:00:00Z",
+    DateUtc: "2024-06-17T13:00:00.000Z",
     Location: "Fußball Arena München",
     HomeTeam: "Romania",
     AwayTeam: "Ukraine",
@@ -64,7 +64,7 @@ module.exports = [
     MatchId: 1676027,
   },
   {
-    DateUtc: "2024-06-17T17:00:00Z",
+    DateUtc: "2024-06-17T16:00:00.000Z",
     Location: "Frankfurt Stadion",
     HomeTeam: "Belgium",
     AwayTeam: "Slovakia",
@@ -72,7 +72,7 @@ module.exports = [
     MatchId: 1676028,
   },
   {
-    DateUtc: "2024-06-17T20:00:00Z",
+    DateUtc: "2024-06-17T19:00:00.000Z",
     Location: "Düsseldorf Arena",
     HomeTeam: "Austria",
     AwayTeam: "France",
@@ -80,7 +80,7 @@ module.exports = [
     MatchId: 1676026,
   },
   {
-    DateUtc: "2024-06-18T17:00:00Z",
+    DateUtc: "2024-06-18T16:00:00.000Z",
     Location: "BVB Stadion Dortmund",
     HomeTeam: "Turkey",
     AwayTeam: "Georgia",
@@ -88,7 +88,7 @@ module.exports = [
     MatchId: 1676029,
   },
   {
-    DateUtc: "2024-06-18T20:00:00Z",
+    DateUtc: "2024-06-18T19:00:00.000Z",
     Location: "RB Arena",
     HomeTeam: "Portugal",
     AwayTeam: "Czech Republic",
@@ -96,7 +96,7 @@ module.exports = [
     MatchId: 1676030,
   },
   {
-    DateUtc: "2024-06-19T14:00:00Z",
+    DateUtc: "2024-06-19T13:00:00.000Z",
     Location: "Volksparkstadion",
     HomeTeam: "Croatia",
     AwayTeam: "Albania",
@@ -104,7 +104,7 @@ module.exports = [
     MatchId: 1676033,
   },
   {
-    DateUtc: "2024-06-19T17:00:00Z",
+    DateUtc: "2024-06-19T16:00:00.000Z",
     Location: "Arena Stuttgart",
     HomeTeam: "Germany",
     AwayTeam: "Hungary",
@@ -112,7 +112,7 @@ module.exports = [
     MatchId: 1676031,
   },
   {
-    DateUtc: "2024-06-19T20:00:00Z",
+    DateUtc: "2024-06-19T19:00:00.000Z",
     Location: "Stadion Köln",
     HomeTeam: "Scotland",
     AwayTeam: "Switzerland",
@@ -120,7 +120,7 @@ module.exports = [
     MatchId: 1676032,
   },
   {
-    DateUtc: "2024-06-20T14:00:00Z",
+    DateUtc: "2024-06-20T13:00:00.000Z",
     Location: "Fußball Arena München",
     HomeTeam: "Slovenia",
     AwayTeam: "Serbia",
@@ -128,7 +128,7 @@ module.exports = [
     MatchId: 1676035,
   },
   {
-    DateUtc: "2024-06-20T17:00:00Z",
+    DateUtc: "2024-06-20T16:00:00.000Z",
     Location: "Frankfurt Stadion",
     HomeTeam: "Denmark",
     AwayTeam: "England",
@@ -136,7 +136,7 @@ module.exports = [
     MatchId: 1676036,
   },
   {
-    DateUtc: "2024-06-20T20:00:00Z",
+    DateUtc: "2024-06-20T19:00:00.000Z",
     Location: "Arena AufSchalke",
     HomeTeam: "Spain",
     AwayTeam: "Italy",
@@ -144,7 +144,7 @@ module.exports = [
     MatchId: 1676034,
   },
   {
-    DateUtc: "2024-06-21T14:00:00Z",
+    DateUtc: "2024-06-21T13:00:00.000Z",
     Location: "Düsseldorf Arena",
     HomeTeam: "Slovakia",
     AwayTeam: "Ukraine",
@@ -152,7 +152,7 @@ module.exports = [
     MatchId: 1676039,
   },
   {
-    DateUtc: "2024-06-21T17:00:00Z",
+    DateUtc: "2024-06-21T16:00:00.000Z",
     Location: "Olympiastadion",
     HomeTeam: "Poland",
     AwayTeam: "Austria",
@@ -160,7 +160,7 @@ module.exports = [
     MatchId: 1676037,
   },
   {
-    DateUtc: "2024-06-21T20:00:00Z",
+    DateUtc: "2024-06-21T19:00:00.000Z",
     Location: "RB Arena",
     HomeTeam: "Netherlands",
     AwayTeam: "France",
@@ -168,7 +168,7 @@ module.exports = [
     MatchId: 1676038,
   },
   {
-    DateUtc: "2024-06-22T14:00:00Z",
+    DateUtc: "2024-06-22T13:00:00.000Z",
     Location: "Volksparkstadion",
     HomeTeam: "Georgia",
     AwayTeam: "Czech Republic",
@@ -176,7 +176,7 @@ module.exports = [
     MatchId: 1676041,
   },
   {
-    DateUtc: "2024-06-22T17:00:00Z",
+    DateUtc: "2024-06-22T16:00:00.000Z",
     Location: "BVB Stadion Dortmund",
     HomeTeam: "Turkey",
     AwayTeam: "Portugal",
@@ -184,7 +184,7 @@ module.exports = [
     MatchId: 1676042,
   },
   {
-    DateUtc: "2024-06-22T20:00:00Z",
+    DateUtc: "2024-06-22T19:00:00.000Z",
     Location: "Stadion Köln",
     HomeTeam: "Belgium",
     AwayTeam: "Romania",
@@ -192,7 +192,7 @@ module.exports = [
     MatchId: 1676040,
   },
   {
-    DateUtc: "2024-06-23T19:00:00Z",
+    DateUtc: "2024-06-23T18:00:00.000Z",
     Location: "Frankfurt Stadion",
     HomeTeam: "Switzerland",
     AwayTeam: "Germany",
@@ -200,7 +200,7 @@ module.exports = [
     MatchId: 1676043,
   },
   {
-    DateUtc: "2024-06-23T19:00:00Z",
+    DateUtc: "2024-06-23T18:00:00.000Z",
     Location: "Arena Stuttgart",
     HomeTeam: "Scotland",
     AwayTeam: "Hungary",
@@ -208,7 +208,7 @@ module.exports = [
     MatchId: 1676044,
   },
   {
-    DateUtc: "2024-06-24T19:00:00Z",
+    DateUtc: "2024-06-24T18:00:00.000Z",
     Location: "Düsseldorf Arena",
     HomeTeam: "Albania",
     AwayTeam: "Spain",
@@ -216,7 +216,7 @@ module.exports = [
     MatchId: 1676045,
   },
   {
-    DateUtc: "2024-06-24T19:00:00Z",
+    DateUtc: "2024-06-24T18:00:00.000Z",
     Location: "RB Arena",
     HomeTeam: "Croatia",
     AwayTeam: "Italy",
@@ -224,7 +224,7 @@ module.exports = [
     MatchId: 1676046,
   },
   {
-    DateUtc: "2024-06-25T16:00:00Z",
+    DateUtc: "2024-06-25T15:00:00.000Z",
     Location: "Olympiastadion",
     HomeTeam: "Netherlands",
     AwayTeam: "Austria",
@@ -232,7 +232,7 @@ module.exports = [
     MatchId: 1676049,
   },
   {
-    DateUtc: "2024-06-25T16:00:00Z",
+    DateUtc: "2024-06-25T15:00:00.000Z",
     Location: "BVB Stadion Dortmund",
     HomeTeam: "France",
     AwayTeam: "Poland",
@@ -240,7 +240,7 @@ module.exports = [
     MatchId: 1676050,
   },
   {
-    DateUtc: "2024-06-25T19:00:00Z",
+    DateUtc: "2024-06-25T18:00:00.000Z",
     Location: "Stadion Köln",
     HomeTeam: "England",
     AwayTeam: "Slovenia",
@@ -248,7 +248,7 @@ module.exports = [
     MatchId: 1676055,
   },
   {
-    DateUtc: "2024-06-25T19:00:00Z",
+    DateUtc: "2024-06-25T18:00:00.000Z",
     Location: "Fußball Arena München",
     HomeTeam: "Denmark",
     AwayTeam: "Serbia",
@@ -256,7 +256,7 @@ module.exports = [
     MatchId: 1676048,
   },
   {
-    DateUtc: "2024-06-26T16:00:00Z",
+    DateUtc: "2024-06-26T15:00:00.000Z",
     Location: "Frankfurt Stadion",
     HomeTeam: "Slovakia",
     AwayTeam: "Romania",
@@ -264,7 +264,7 @@ module.exports = [
     MatchId: 1676051,
   },
   {
-    DateUtc: "2024-06-26T16:00:00Z",
+    DateUtc: "2024-06-26T15:00:00.000Z",
     Location: "Arena Stuttgart",
     HomeTeam: "Ukraine",
     AwayTeam: "Belgium",
@@ -272,7 +272,7 @@ module.exports = [
     MatchId: 1676052,
   },
   {
-    DateUtc: "2024-06-26T19:00:00Z",
+    DateUtc: "2024-06-26T18:00:00.000Z",
     Location: "Arena AufSchalke",
     HomeTeam: "Georgia",
     AwayTeam: "Portugal",
@@ -280,14 +280,14 @@ module.exports = [
     MatchId: 1676053,
   },
   {
-    DateUtc: "2024-06-26T19:00:00Z",
+    DateUtc: "2024-06-26T18:00:00.000Z",
     Location: "Volksparkstadion",
     HomeTeam: "Czechia",
     AwayTeam: "Türkiye",
     Group: "Group F",
   },
   {
-    DateUtc: "2024-06-29T16:00:00Z",
+    DateUtc: "2024-06-29T15:00:00.000Z",
     Location: "Olympiastadion",
     HomeTeam: "Runner-up Group A",
     AwayTeam: "Runner-up Group B",
@@ -295,7 +295,7 @@ module.exports = [
     MatchId: 1696565,
   },
   {
-    DateUtc: "2024-06-29T19:00:00Z",
+    DateUtc: "2024-06-29T18:00:00.000Z",
     Location: "BVB Stadion Dortmund",
     HomeTeam: "Winner Group A",
     AwayTeam: "Runner-up Group C",
@@ -303,7 +303,7 @@ module.exports = [
     MatchId: 1696566,
   },
   {
-    DateUtc: "2024-06-30T16:00:00Z",
+    DateUtc: "2024-06-30T15:00:00.000Z",
     Location: "Arena AufSchalke",
     HomeTeam: "Winner Group C",
     AwayTeam: "3rd Group D/E/F",
@@ -311,7 +311,7 @@ module.exports = [
     MatchId: 1696567,
   },
   {
-    DateUtc: "2024-06-30T19:00:00Z",
+    DateUtc: "2024-06-30T18:00:00.000Z",
     Location: "Stadion Köln",
     HomeTeam: "Winner Group B",
     AwayTeam: "3rd Group A/D/E/F",
@@ -319,7 +319,7 @@ module.exports = [
     MatchId: 1696568,
   },
   {
-    DateUtc: "2024-07-01T16:00:00Z",
+    DateUtc: "2024-07-01T15:00:00.000Z",
     Location: "Düsseldorf Arena",
     HomeTeam: "Runner-up Group D",
     AwayTeam: "Runner-up Group E",
@@ -327,7 +327,7 @@ module.exports = [
     MatchId: 1696569,
   },
   {
-    DateUtc: "2024-07-01T19:00:00Z",
+    DateUtc: "2024-07-01T18:00:00.000Z",
     Location: "Frankfurt Stadion",
     HomeTeam: "Winner Group F",
     AwayTeam: "3rd Group A/B/C",
@@ -335,7 +335,7 @@ module.exports = [
     MatchId: 1696570,
   },
   {
-    DateUtc: "2024-07-02T16:00:00Z",
+    DateUtc: "2024-07-02T15:00:00.000Z",
     Location: "Fußball Arena München",
     HomeTeam: "Winner Group E",
     AwayTeam: "3rd Group A/B/C/D",
@@ -343,7 +343,7 @@ module.exports = [
     MatchId: 1696571,
   },
   {
-    DateUtc: "2024-07-02T19:00:00Z",
+    DateUtc: "2024-07-02T18:00:00.000Z",
     Location: "RB Arena",
     HomeTeam: "Winner Group D",
     AwayTeam: "Runner-up Group F",
@@ -351,7 +351,7 @@ module.exports = [
     MatchId: 1696572,
   },
   {
-    DateUtc: "2024-07-05T16:00:00Z",
+    DateUtc: "2024-07-05T15:00:00.000Z",
     Location: "Stuttgart Arena, Stuttgart",
     HomeTeam: "Winner R16 Match 4",
     AwayTeam: "Winner R16 Match 2",
@@ -359,7 +359,7 @@ module.exports = [
     MatchId: 1696573,
   },
   {
-    DateUtc: "2024-07-05T19:00:00Z",
+    DateUtc: "2024-07-05T18:00:00.000Z",
     Location: "Volksparkstadion, Hamburg",
     HomeTeam: "Winner R16 Match 6",
     AwayTeam: "Winner R16 Match 5",
@@ -367,7 +367,7 @@ module.exports = [
     MatchId: 1696574,
   },
   {
-    DateUtc: "2024-07-06T16:00:00Z",
+    DateUtc: "2024-07-06T15:00:00.000Z",
     Location: "Düsseldorf Arena, Düsseldorf",
     HomeTeam: "Winner R16 Match 3",
     AwayTeam: "Winner R16 Match 1",
@@ -375,7 +375,7 @@ module.exports = [
     MatchId: 1696575,
   },
   {
-    DateUtc: "2024-07-06T19:00:00Z",
+    DateUtc: "2024-07-06T18:00:00.000Z",
     Location: "Olympiastadion, Berlin",
     HomeTeam: "Winner R16 Match 7",
     AwayTeam: "Winner R16 Match 8",
@@ -383,7 +383,7 @@ module.exports = [
     MatchId: 1696576,
   },
   {
-    DateUtc: "2024-07-09T19:00:00Z",
+    DateUtc: "2024-07-09T18:00:00.000Z",
     Location: "Fußball Arena München, Munich",
     HomeTeam: "Winner QF Match 1",
     AwayTeam: "Winner QF Match 2",
@@ -391,7 +391,7 @@ module.exports = [
     MatchId: 1696577,
   },
   {
-    DateUtc: "2024-07-10T19:00:00Z",
+    DateUtc: "2024-07-10T18:00:00.000Z",
     Location: "BVB Stadion Dortmund, Dortmund",
     HomeTeam: "Winner QF Match 4",
     AwayTeam: "Winner QF Match 3",
@@ -399,7 +399,7 @@ module.exports = [
     MatchId: 1696578,
   },
   {
-    DateUtc: "2024-07-14T19:00:00Z",
+    DateUtc: "2024-07-14T18:00:00.000Z",
     Location: "Olympiastadion, Berlin",
     HomeTeam: "Winner SF1",
     AwayTeam: "Winner SF2",

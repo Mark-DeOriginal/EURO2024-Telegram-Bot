@@ -2,6 +2,8 @@ const express = require("express");
 const { Telegraf, Scenes, session } = require("telegraf");
 const cron = require("node-cron");
 const axios = require("axios");
+const fs = require("fs").promises;
+
 const {
   Subscriber,
   BotAdmin,
@@ -30,15 +32,15 @@ const bot = new Telegraf(BOT_TOKEN);
 const app = express();
 app.use(express.json());
 
-// Set webhook
-bot.telegram
-  .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
-  .then(() => {
-    console.log("Telegram Webhook set successfully.");
-  })
-  .catch((error) => {
-    console.error("Error setting Telegram Webhook", error);
-  });
+// // Set webhook
+// bot.telegram
+//   .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
+//   .then(() => {
+//     console.log("Telegram Webhook set successfully.");
+//   })
+//   .catch((error) => {
+//     console.error("Error setting Telegram Webhook", error);
+//   });
 
 // Webhook endpoint
 app.post(`/bot${BOT_TOKEN}`, (req, res) => {
@@ -1154,3 +1156,5 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
+
+bot.launch();
