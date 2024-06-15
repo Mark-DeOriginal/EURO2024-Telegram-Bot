@@ -1135,7 +1135,7 @@ const startCountdownCronJobs = () => {
 
 // Start cron job to send update for live matches to groups
 const startLiveMatchUpdateCronJob = () => {
-  cron.schedule("*/3 * * * *", async () => {
+  cron.schedule("*/6 * * * *", async () => {
     await sendLiveMatchUpdateToGroups();
   });
 
