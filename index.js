@@ -22,6 +22,7 @@ const LIVE_SCORE_SECRET_KEY = process.env.LIVE_SCORE_SECRET_KEY;
 const EURO_LIVE_MATCH = `https://livescore-api.com/api-client/matches/live.json?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&competition_id=387`;
 
 const base64EuroLogo = require("./encoded-euro-logo.js");
+const base64PumpSinnerLogo = require("./encoded-pump-sinner-logo.js");
 const matchSchedule = require("./match-schedule.js");
 const teamStandings = require("./team-standings.js");
 const teamsInfo = require("./team-info.js");
@@ -145,7 +146,7 @@ const subscribeUser = async (ctx, chatId) => {
       await ctx.reply("Subscription successful.");
       await informBotAdmins(
         ctx,
-        `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nName:${
+        `A Telegram User just subscribed to EURO 2024 Messenger.\n\nDetails:\nName: ${
           ctx.chat.first_name
         } ${
           (ctx.chat.last_name && ctx.chat.last_name) || "Not available"
@@ -1119,6 +1120,95 @@ Attacks: ${stats.attacks || "N/A"}
     console.error("Error sending live match update:", error);
   }
 };
+
+// Send Pump Sinners Advert to Users and Groups
+const sendPumpSinnersTokenLaunchAdvert = async (
+  launchCountDownTime,
+  recipientType
+) => {
+  const subscribers = await loadSubscribers();
+
+  const message = `<b>JOIN US AT PUMP SINNERS</b>
+
+Our goal is simple,
+
+-  Launch a token each day on Pumpfun
+-  Get it to Raydium and then, every member sells, making 5-20x in profit.
+
+We understand the crypto game and just playing accordingly.
+
+Today's token launch is in 
+⏰ <b>${launchCountDownTime}</b>
+
+<a href="https://t.me/pumpsinner_bot">@pumpsinners_bot</a>`;
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [{ text: "👥 Join Pump Sinners", url: "https://t.me/pumpsinner_bot" }],
+    ],
+  };
+
+  if (recipientType === "groups" || recipientType === "all") {
+    for (const groupId of subscribers.groups) {
+      bot.telegram.sendPhoto(
+        groupId,
+        {
+          source: Buffer.from(base64PumpSinnerLogo(), "base64"),
+        },
+        {
+          caption: message,
+          parse_mode: "HTML",
+          reply_markup: inlineKeyboard,
+        }
+      );
+    }
+  }
+
+  if (recipientType === "users" || recipientType === "all") {
+    const botAdminList = await loadBotAdmins();
+
+    for (const chatId of subscribers.users) {
+      if (!botAdminList.includes(chatId)) {
+        bot.telegram.sendPhoto(
+          chatId,
+          {
+            source: Buffer.from(base64PumpSinnerLogo(), "base64"),
+          },
+          {
+            caption: message,
+            parse_mode: "HTML",
+            reply_markup: inlineKeyboard,
+          }
+        );
+      }
+    }
+  }
+};
+
+// Command handler for /send_advert
+bot.command("send_advert", (ctx) => {
+  const text = ctx.message.text;
+  const timeMatch = text.match(/t=(\d+),(\d+)\s*(user|group|all)/i);
+
+  if (!timeMatch) {
+    ctx.reply(
+      "Invalid command format. Please use the format: /send_advert t=2,32 user|group|all"
+    );
+    return;
+  }
+
+  const hours = parseInt(timeMatch[1], 10);
+  const minutes = parseInt(timeMatch[2], 10);
+  const recipientType = timeMatch[3].toLowerCase();
+  const launchCountDownTime = `${hours} hours, ${minutes} mins`;
+
+  // Send the advert immediately
+  sendPumpSinnersTokenLaunchAdvert(launchCountDownTime, recipientType);
+
+  ctx.reply(
+    `Sent an advert for Pump Sinners with a countdown of ${launchCountDownTime} to ${recipientType}`
+  );
+});
 
 // Start cron jobs for sending countdown updates
 const startCountdownCronJobs = () => {
