@@ -1132,13 +1132,13 @@ const sendPumpSinnersTokenLaunchAdvert = async (
   recipientType
 ) => {
   const subscribers = await loadSubscribers();
-
+  const botAdminList = await loadBotAdmins();
   const message = `<b>JOIN US AT PUMP SINNERS</b>
 
 Our goal is simple,
 
--  Launch a token each day on Pumpfun
--  Get it to Raydium and then, every member sells, making 5-20x in profit.
+- Launch a token each day on Pumpfun
+- Get it to Raydium and then, every member sells, making 5-20x in profit.
 
 We understand the crypto game and just playing accordingly.
 
@@ -1155,27 +1155,9 @@ Today's token launch is in
 
   if (recipientType === "groups" || recipientType === "all") {
     for (const groupId of subscribers.groups) {
-      bot.telegram.sendPhoto(
-        groupId,
-        {
-          source: Buffer.from(base64PumpSinnerLogo(), "base64"),
-        },
-        {
-          caption: message,
-          parse_mode: "HTML",
-          reply_markup: inlineKeyboard,
-        }
-      );
-    }
-  }
-
-  if (recipientType === "users" || recipientType === "all") {
-    const botAdminList = await loadBotAdmins();
-
-    for (const chatId of subscribers.users) {
-      if (!botAdminList.includes(chatId)) {
-        bot.telegram.sendPhoto(
-          chatId,
+      try {
+        await bot.telegram.sendPhoto(
+          groupId,
           {
             source: Buffer.from(base64PumpSinnerLogo(), "base64"),
           },
@@ -1185,6 +1167,30 @@ Today's token launch is in
             reply_markup: inlineKeyboard,
           }
         );
+      } catch (error) {
+        console.error(`Failed to send message to group ${groupId}:`, error);
+      }
+    }
+  }
+
+  if (recipientType === "users" || recipientType === "all") {
+    for (const chatId of subscribers.users) {
+      if (!botAdminList.includes(chatId)) {
+        try {
+          await bot.telegram.sendPhoto(
+            chatId,
+            {
+              source: Buffer.from(base64PumpSinnerLogo(), "base64"),
+            },
+            {
+              caption: message,
+              parse_mode: "HTML",
+              reply_markup: inlineKeyboard,
+            }
+          );
+        } catch (error) {
+          console.error(`Failed to send message to user ${chatId}:`, error);
+        }
       }
     }
   }
