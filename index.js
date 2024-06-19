@@ -1193,11 +1193,11 @@ Today's token launch is in
 // Command handler for /send_advert
 bot.command("send_advert", async (ctx) => {
   const text = ctx.message.text;
-  const timeMatch = text.match(/t=(\d+),(\d+)\s*(user|group|all)/i);
+  const timeMatch = text.match(/t=(\d+),(\d+)\s*(users|groups|all)/i);
 
   if (!timeMatch) {
     ctx.reply(
-      "Invalid command format. Please use the format: /send_advert t=2,32 user|group|all"
+      "Invalid command format. Please use the format: /send_advert t=2,32 users|groups|all"
     );
     return;
   }
