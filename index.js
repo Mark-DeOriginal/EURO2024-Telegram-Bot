@@ -21,6 +21,7 @@ const BOT_TOKEN = isTesting
 
 const PORT = process.env.PORT || 3000;
 const BOT_ADMIN_PASSWORD = process.env.BOT_ADMIN_PASSWORD;
+const HOST = process.env.HOST;
 const LIVE_SCORE_API_KEY = process.env.LIVE_SCORE_API_KEY;
 const LIVE_SCORE_SECRET_KEY = process.env.LIVE_SCORE_SECRET_KEY;
 const EURO_LIVE_MATCH = `https://livescore-api.com/api-client/matches/live.json?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&competition_id=387`;
