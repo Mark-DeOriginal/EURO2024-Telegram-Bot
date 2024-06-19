@@ -13,10 +13,14 @@ const {
 
 require("dotenv").config();
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
+const isTesting = false;
+
+const BOT_TOKEN = isTesting
+  ? process.env.BOT_TEST_TOKEN
+  : process.env.BOT_TOKEN;
+
 const PORT = process.env.PORT || 3000;
 const BOT_ADMIN_PASSWORD = process.env.BOT_ADMIN_PASSWORD;
-const HOST = process.env.HOST;
 const LIVE_SCORE_API_KEY = process.env.LIVE_SCORE_API_KEY;
 const LIVE_SCORE_SECRET_KEY = process.env.LIVE_SCORE_SECRET_KEY;
 const EURO_LIVE_MATCH = `https://livescore-api.com/api-client/matches/live.json?key=${LIVE_SCORE_API_KEY}&secret=${LIVE_SCORE_SECRET_KEY}&competition_id=387`;
@@ -33,7 +37,7 @@ const bot = new Telegraf(BOT_TOKEN);
 const app = express();
 app.use(express.json());
 
-// // Set webhook
+// Set webhook
 bot.telegram
   .setWebhook(`${HOST}/bot${BOT_TOKEN}`)
   .then(() => {
@@ -1186,7 +1190,7 @@ Today's token launch is in
 };
 
 // Command handler for /send_advert
-bot.command("send_advert", (ctx) => {
+bot.command("send_advert", async (ctx) => {
   const text = ctx.message.text;
   const timeMatch = text.match(/t=(\d+),(\d+)\s*(user|group|all)/i);
 
@@ -1203,7 +1207,7 @@ bot.command("send_advert", (ctx) => {
   const launchCountDownTime = `${hours} hours, ${minutes} mins`;
 
   // Send the advert immediately
-  sendPumpSinnersTokenLaunchAdvert(launchCountDownTime, recipientType);
+  await sendPumpSinnersTokenLaunchAdvert(launchCountDownTime, recipientType);
 
   ctx.reply(
     `Sent an advert for Pump Sinners with a countdown of ${launchCountDownTime} to ${recipientType}`
